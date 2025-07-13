@@ -6,10 +6,9 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/11 20:48:32 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/13 19:35:43 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include <iostream>
 #include <cstring>
@@ -21,6 +20,14 @@
 #include <netinet/in.h>
 #include <fcntl.h>       // For fcntl()
 #include <poll.h>        // For poll()
+
+
+void    register_cl(struct pollfd *a, int cl_fd, int count)
+{
+    a[count].fd = cl_fd;
+    a[count].events = POLLIN;
+}
+
 
 int main()
 {
@@ -37,7 +44,6 @@ int main()
         std::cerr << "ERROR\n" << std::endl;
         exit(1);
     }
-    
     int sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sock_fd == -1)
     {
@@ -66,28 +72,43 @@ int main()
     char buf[512];
     memset(buf, 0, 512);
     size_t bytes_readen;
-    while (true)
+    struct sockaddr_in cl_adr;
+    socklen_t cl_len = sizeof(cl_adr);
+    int size_cl =3;
+    struct pollfd fds[size_cl];
+    std::cout << "Registering client phase (currently max = "<< size_cl << ") >>>" <<  std::endl;
+    int count = 0;
+    while (count < size_cl)
     {
-        struct sockaddr_in cl_adr;
-        socklen_t cl_len = sizeof(cl_adr);
         client_fd = accept(sock_fd, (struct sockaddr *)&cl_adr, &cl_len);
         if (client_fd == -1)
         {
             std::cerr << "ERROR\n" << std::endl;
             continue ;
         }
-        std::cout << " new client accepted." <<std::endl;
-        while (true)
+        std::cout << " new client accepted." << std::endl;
+        register_cl(fds, client_fd, count);
+        count++;
+    }
+    std::cout << "Beginning the listening for messages phase >>>"<< std::endl;
+    while (true)
+    {
+        int ready = poll(fds, size_cl, 10);
+        for (int i = 0; i < size_cl; i++)
         {
-            memset(buf, 0, 512);
-            bytes_readen = recv(client_fd, &buf, sizeof(buf) -1, 0);
-            if (bytes_readen > 0)
-                std::cout << "received message from client : "<< buf << std::endl;
-            std::string reply = ":irc.localhost 001 user :Welcome to ft_irc!\r\n";
-            send(client_fd, reply.c_str(), reply.length(), 0);
+                if (fds[i].revents & POLLIN)
+                {
+                    memset(buf, 0, 512);
+                    bytes_readen = recv(fds[i].fd, &buf, sizeof(buf), 0);
+                    if (bytes_readen > 0)
+                    {
+                        std::cout << "received message from client : "<< buf << std::endl;
+                        std::string reply = "Welcome to ft_irc!\r\n";
+                        send(fds[i].fd, reply.c_str(), reply.length(), 0);
+                    }
+                }
         }
     }
-
     freeaddrinfo(res);
-    return 1;
+    return 0;
 }

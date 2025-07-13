@@ -6,7 +6,9 @@ C:
 
 
 S:
-	c++ src/main.cpp -o S
+	c++ src/Server.cpp -o S
 
 clean :
 	rm S C
+
+re : clean all
