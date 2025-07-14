@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/13 19:35:43 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/14 21:46:46 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>       // For fcntl()
 #include <poll.h>        // For poll()
-
+#include "../include/Server.hpp"
 
 void    register_cl(struct pollfd *a, int cl_fd, int count)
 {
@@ -28,49 +28,58 @@ void    register_cl(struct pollfd *a, int cl_fd, int count)
     a[count].events = POLLIN;
 }
 
-
-int main()
+void Server::setup()
 {
     struct addrinfo hint;
     memset(&hint, 0, sizeof(hint));
     hint.ai_flags = AI_PASSIVE;
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_STREAM;
-
     struct addrinfo *res;
     int    ret = getaddrinfo(NULL, "6667", &hint, &res);
-    if (ret == -1)
+    if (ret < 0)
     {
-        std::cerr << "ERROR\n" << std::endl;
+        std::cerr << "ERROR1\n" << std::endl;
         exit(1);
     }
-    int sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (sock_fd == -1)
+    this->server_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (this->server_fd < 0)
     {
-        std::cerr << "ERROR\n" << std::endl;
+        std::cerr << "ERROR2\n" << std::endl;
         exit(1);
     }
     int opt = 1;
-    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1 )
+    if (setsockopt(this->server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0 )
     {
-        std::cerr << "ERROR\n" << std::endl;
+        std::cerr << "ERROR3\n" << std::endl;
         exit(1);
     }
-    if (bind(sock_fd, res->ai_addr, res->ai_addrlen) == -1)
+    if (bind(this->server_fd, res->ai_addr, res->ai_addrlen) < 0)
     {
-        std::cerr << "ERROR\n" << std::endl;
+        std::cerr << "ERROR4\n" << std::endl;
         exit(1);
     }
-    if (listen(sock_fd, 128) == -1)
+    if (listen(this->server_fd, 128) < 0)
     {
-        std::cerr << "ERROR\n" << std::endl;
-        close(sock_fd);
+        std::cerr << "ERROR5\n" << std::endl;
+        close(this->server_fd);
         exit(1);
     }
+    freeaddrinfo(res);
     std::cout << "Server is listening on port 6667\n";
+}
+
+int main(int ac, char *av[])
+{
+    Server s("6667", "password");
+    s.setup();
+
+
     int client_fd;
     char buf[512];
     memset(buf, 0, 512);
+
+
     size_t bytes_readen;
     struct sockaddr_in cl_adr;
     socklen_t cl_len = sizeof(cl_adr);
@@ -80,8 +89,8 @@ int main()
     int count = 0;
     while (count < size_cl)
     {
-        client_fd = accept(sock_fd, (struct sockaddr *)&cl_adr, &cl_len);
-        if (client_fd == -1)
+        client_fd = accept(s.get_serv_fd(), (struct sockaddr *)&cl_adr, &cl_len);
+        if (client_fd < 0)
         {
             std::cerr << "ERROR\n" << std::endl;
             continue ;
@@ -90,6 +99,7 @@ int main()
         register_cl(fds, client_fd, count);
         count++;
     }
+
     std::cout << "Beginning the listening for messages phase >>>"<< std::endl;
     while (true)
     {
@@ -102,13 +112,12 @@ int main()
                     bytes_readen = recv(fds[i].fd, &buf, sizeof(buf), 0);
                     if (bytes_readen > 0)
                     {
-                        std::cout << "received message from client : "<< buf << std::endl;
+                        std::cout << "received message from client "<< i + 1 <<" : " << buf << std::endl;
                         std::string reply = "Welcome to ft_irc!\r\n";
                         send(fds[i].fd, reply.c_str(), reply.length(), 0);
                     }
                 }
         }
     }
-    freeaddrinfo(res);
     return 0;
 }
