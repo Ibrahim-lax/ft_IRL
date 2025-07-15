@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/14 21:45:05 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/15 16:18:07 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,27 +26,27 @@
 
 class Server
 {
-private:
-    int server_fd;                         // Main listening socket
-    std::string port;               // Port the server is listening on
-    std::string pw;               // password
-    // std::vector<struct pollfd> poll_fds;   // List of all FDs (clients + server)
-    // std::vector<int> client_fds;           // Optional: list of client sockets (could be inferred from poll_fds)
+    private:
+        int server_fd;                         // Main listening socket
+        std::string port;               // Port the server is listening on
+        std::string pw;               // password
+        // std::vector<struct pollfd> poll_fds;   // List of all FDs (clients + server)
+        // std::vector<int> client_fds;           // Optional: list of client sockets (could be inferred from poll_fds)
 
-    // struct sockaddr_in server_addr;        // Address for bind()
-    // socklen_t addr_len;
+        // struct sockaddr_in server_addr;        // Address for bind()
+        // socklen_t addr_len;
 
-    // bool running;                          // Server loop flag
+        // bool running;                          // Server loop flag
 
-public:
-    Server(std::string port, std::string passw){this->port = port; this->pw = passw;}
-    ~Server() {};
+    public:
+        Server(std::string port, std::string passw){this->port = port; this->pw = passw;}
+        ~Server() {};
 
-    void setup();                          // Bind, listen, etc.
-    void run() {};                            // Main poll loop
-    void acceptNewClient() {};
-    int get_serv_fd(){return server_fd;}
-    void handleClientMessage(int client_fd) {};
-    void closeClient(int client_fd) {};
+        void setup();                          // Bind, listen, etc.
+        void run() {};                            // Main poll loop
+        void acceptNewClient() {};
+        int get_serv_fd(){return server_fd;}
+        void handleClientMessage(int client_fd) {};
+        void closeClient(int client_fd) {};
 };
 #endif
