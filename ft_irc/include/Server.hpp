@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/16 16:55:06 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/16 17:25:49 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,9 +34,6 @@ class Server
 
         // struct sockaddr_in server_addr;        // Address for bind()
         // socklen_t addr_len;
-
-        // bool running;                          // Server loop flag
-
     public:
         std::vector<struct pollfd> poll_fds;   // List of all FDs (clients + server)
         Server(std::string port, std::string passw){this->port = port; this->pw = passw;}

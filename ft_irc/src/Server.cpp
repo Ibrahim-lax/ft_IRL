@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/16 17:15:45 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/16 17:25:21 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,26 +68,25 @@ void Server::setup()
         close(this->server_fd);
         exit(1);
     }
-    struct pollfd sv; // for the setup2 fct
-    sv.fd = this->get_serv_fd();// for the setup2 fct
-    sv.events = POLLIN;// for the setup2 fct
-    this->poll_fds.push_back(sv);// for the setup2 fct
+    struct pollfd sv; 
+    sv.fd = this->get_serv_fd();
+    sv.events = POLLIN;
+    this->poll_fds.push_back(sv);
     std::cout << "Server is listening on port 6667\n";
     freeaddrinfo(res);
 }
 
 
-
 void Server::run()
 {
-
-    int client_fd; // for the loop
-    char buf[512]; // for the loop
-    memset(buf, 0, 512); // for the loop    
-    int size_cl =0; // for the loop
-    struct sockaddr_in cl_adr; // for loop fct
-    size_t bytes_readen; // for the loop 
-    socklen_t cl_len = sizeof(cl_adr); // for the loop
+    int client_fd;
+    char buf[512];
+    memset(buf, 0, 512);
+    int size_cl =0;
+    struct sockaddr_in cl_adr;
+    size_t bytes_readen;
+    socklen_t cl_len = sizeof(cl_adr);
+    int i;
     while (true)
     {
         int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 10);
@@ -105,23 +104,25 @@ void Server::run()
                 std::cerr << "ERROR\n" << std::endl;
                 continue ;
             }
+            // authentication ...
             size_cl++;
             std::cout << "New client added, " <<size_cl<<" in total now" <<std::endl;
             register_cl(&this->poll_fds, client_fd);
         }
-        for (int i = 1; i <= size_cl; i++)
+        i=0;
+        while (++i <= size_cl)
         {
-                if (this->poll_fds.at(i).revents & POLLIN)
+            if (this->poll_fds.at(i).revents & POLLIN)
+            {
+                memset(buf, 0, 512);
+                bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
+                if (bytes_readen > 0)
                 {
-                    memset(buf, 0, 512);
-                    bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
-                    if (bytes_readen > 0)
-                    {
-                        std::cout << "received message from client "<< i <<" : " << buf << std::endl;
-                        std::string reply = "Welcome to ft_irc!\r\n";
-                        send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
-                    }
+                    std::cout << "received message from client "<< i <<" : " << buf << std::endl;
+                    std::string reply = "Welcome to ft_irc!\r\n";
+                    send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
                 }
+            }
         }
     }
 }                        
