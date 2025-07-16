@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/15 19:45:48 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/16 16:55:06 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ class Server
         Server(std::string port, std::string passw){this->port = port; this->pw = passw;}
         ~Server() {};
         void setup();                          // Bind, listen, etc.
-        void run() {};                            // Main poll loop
+        void run();                            // Main poll loop
         void acceptNewClient() {};
         int get_serv_fd(){return server_fd;}
         void handleClientMessage(int client_fd) {};
