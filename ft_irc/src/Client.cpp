@@ -30,17 +30,18 @@ int main()
         close(sock);
         return 1;
     }
-    std::string msg;
     while (1)
     {
+        std::string msg;
         std::cout << "type msg to send :";
-        std::getline(std::cin, msg);
+        std::getline(std::cin, msg);                
         // std::cin >> msg;
+        // std::cout << msg;
         if (msg.empty())
             continue;
-        send(sock, msg.c_str(), msg.size(), 0); 
-        char buffer[1024];
-        memset(buffer, 0, 1024);
+        send(sock, msg.c_str(), msg.size(), 0);
+        char buffer[512];
+        memset(buffer, 0, 512);
         ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
         if (bytes > 0)
             std::cout << "Server replied: " << buffer;
