@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/16 17:25:49 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/17 18:40:25 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ class Server
         int server_fd;                         // Main listening socket
         std::string port;               // Port the server is listening on
         std::string pw;               // password
-        // std::vector<int> client_fds;           // Optional: list of client sockets (could be inferred from poll_fds)
+        // std::vector<Client> clients;           // Optional: list of client sockets (could be inferred from poll_fds)
 
         // struct sockaddr_in server_addr;        // Address for bind()
         // socklen_t addr_len;

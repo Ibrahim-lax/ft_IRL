@@ -6,11 +6,17 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/13 16:13:19 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/17 18:40:18 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
+
+class Client
+{
+    
+};
+
 
 #endif

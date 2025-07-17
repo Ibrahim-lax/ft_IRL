@@ -6,20 +6,10 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/16 17:25:21 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/17 18:54:35 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-// #include <iostream>
-// #include <cstring>
-// #include <cstdlib>       // For exit()
-// #include <unistd.h>      // For close()
-// #include <netdb.h>       // For getaddrinfo(), addrinfo
-// #include <sys/types.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <fcntl.h>       // For fcntl()
-// #include <poll.h>        // For poll()
 #include "../include/Server.hpp"
 
 void    register_cl(std::vector<struct pollfd> *poll_fds, int cl_fd)
@@ -28,7 +18,6 @@ void    register_cl(std::vector<struct pollfd> *poll_fds, int cl_fd)
     cl.fd = cl_fd;
     cl.events = POLLIN;
     poll_fds->push_back(cl);
-    
 }
 
 void Server::setup()
@@ -104,12 +93,11 @@ void Server::run()
                 std::cerr << "ERROR\n" << std::endl;
                 continue ;
             }
-            // authentication ...
             size_cl++;
             std::cout << "New client added, " <<size_cl<<" in total now" <<std::endl;
             register_cl(&this->poll_fds, client_fd);
         }
-        i=0;
+        i = 0;
         while (++i <= size_cl)
         {
             if (this->poll_fds.at(i).revents & POLLIN)
@@ -119,6 +107,14 @@ void Server::run()
                 if (bytes_readen > 0)
                 {
                     std::cout << "received message from client "<< i <<" : " << buf << std::endl;
+                    std::string str_buff = buf;
+                    // parsing here :
+                    // PASS
+                    // NICK
+                    // USER
+                    // JOIN
+                    // PRIVMSG
+                    // PING / PONG
                     std::string reply = "Welcome to ft_irc!\r\n";
                     send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
                 }
@@ -126,3 +122,4 @@ void Server::run()
         }
     }
 }                        
+ 
