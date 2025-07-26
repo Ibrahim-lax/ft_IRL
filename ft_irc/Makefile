@@ -1,4 +1,4 @@
-all : C S
+all : S
 
 
 C:
@@ -9,6 +9,6 @@ S:
 	c++ src/Server.cpp src/main.cpp -o S
 
 clean :
-	rm S C
+	rm S 
 
 re : clean all

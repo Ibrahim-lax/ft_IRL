@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/17 18:54:35 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/25 18:33:55 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void Server::setup()
     this->server_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (this->server_fd < 0)
     {
-        std::cerr << "ERROR2\n" << std::endl;
+        std::cerr << "ERROR2\n" << gai_strerror(this->server_fd) << std::endl;
         exit(1);
     }
     int opt = 1;
@@ -46,9 +46,9 @@ void Server::setup()
         std::cerr << "ERROR3\n" << std::endl;
         exit(1);
     }
-    if (bind(this->server_fd, res->ai_addr, res->ai_addrlen) < 0)
+    if ((ret = bind(this->server_fd, res->ai_addr, res->ai_addrlen)) < 0)
     {
-        std::cerr << "ERROR4\n" << std::endl;
+        std::cerr << "ERROR4\n" << gai_strerror(ret) << std::endl;
         exit(1);
     }
     if (listen(this->server_fd, 128) < 0)
@@ -65,6 +65,33 @@ void Server::setup()
     freeaddrinfo(res);
 }
 
+void    parse_test(std::string m, std::string actual_pw)
+{
+    int i = 0;
+    int b;
+    std::string pw;
+    b = m.find("PASS");
+    if (b != std::string::npos)
+    {
+        pw = m.substr(5);
+        pw.pop_back();
+        pw.pop_back();
+        std::cout<<"command PASS found and the password after it is : [" <<pw<<"]"<< std::endl;
+        if (actual_pw == pw)
+            std::cout << "it matches, should now procceed to register client by processing NICK and USER commands after PASS"<< std::endl;
+        else
+            std::cout << "it doesnt matches , should cleanup connection data (client vector and poll struct) and close connection"<< std::endl;
+    }
+    const char *s = m.c_str();
+    while(s[i])
+    {
+        if (s[i] == '\r')
+            std::cout << "carriage return detected" << std::endl;
+        if (s[i] == '\n')
+            std::cout << "line feed detected" << std::endl;
+        i++;
+    }
+}
 
 void Server::run()
 {
@@ -94,7 +121,7 @@ void Server::run()
                 continue ;
             }
             size_cl++;
-            std::cout << "New client added, " <<size_cl<<" in total now" <<std::endl;
+            std::cout << "User "<< size_cl << " joined the chat"<<std::endl; //size_cl<<" in total now" <<std::endl;
             register_cl(&this->poll_fds, client_fd);
         }
         i = 0;
@@ -106,17 +133,24 @@ void Server::run()
                 bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
                 if (bytes_readen > 0)
                 {
-                    std::cout << "received message from client "<< i <<" : " << buf << std::endl;
+                    std::cout << "received message from client "<< i <<" :" << buf << std::endl;
                     std::string str_buff = buf;
+                    parse_test(str_buff, this->pw);
                     // parsing here :
-                    // PASS
-                    // NICK
-                    // USER
+                    // AUTHENTICATion include parsing and runnin PASS NICK USER cmds in order                    
                     // JOIN
                     // PRIVMSG
-                    // PING / PONG
                     std::string reply = "Welcome to ft_irc!\r\n";
                     send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
+                }
+                else if (bytes_readen == 0)
+                {
+                    close(this->poll_fds.at(i).fd);
+                    this->poll_fds.erase(this->poll_fds.begin() + i);
+                    size_cl--;
+                    std::cout << "User " << i << " has left the chat" << std::endl;
+                    i--;
+                    std::cout <<size_cl<<" users in total now" <<std::endl;
                 }
             }
         }
