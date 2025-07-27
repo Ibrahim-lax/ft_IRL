@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/23 18:53:43 by librahim         ###   ########.fr       */
+/*   Updated: 2025/07/26 20:36:13 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,6 @@ class Server
         int server_fd;                         //  listening socket
         std::string port;               // Port 
         std::string pw;               // password
-        std::map<int, Client>            fd_cl;
     public:
         std::vector<struct pollfd> poll_fds;   // vect of poll structs for cleints + server too
         Server(std::string port, std::string passw){this->port = port; this->pw = passw;}
