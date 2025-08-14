@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/26 20:36:13 by librahim         ###   ########.fr       */
+/*   Updated: 2025/08/14 06:43:09 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,10 @@
 #include <vector>
 #include <map>
 #include "Client.hpp"
+#include "Registration.hpp"
 
 class Client;
+class Registration;
 
 class Server
 {
@@ -43,5 +45,11 @@ class Server
         int get_serv_fd(){return server_fd;}
         std::string get_serv_pw(){return pw;}
         void closeClient() {};
+        static std::map<int, Client> map_clients;
 };
+
+bool    password_check(Registration &reg);
+void    nickname(Registration &reg);
+void    username(Registration &reg);
+void    saveinfo(Client &Cl, Registration &reg);
 #endif

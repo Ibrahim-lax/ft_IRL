@@ -1,29 +1,33 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Client.hpp                                         :+:      :+:    :+:   */
+/*   Registration.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/14 04:56:32 by mjuicha          ###   ########.fr       */
+/*   Created: 2025/08/14 02:59:27 by mjuicha           #+#    #+#             */
+/*   Updated: 2025/08/14 05:12:18 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+#ifndef REGISTRATION_HPP
+#define REGISTRATION_HPP
 #include "Server.hpp"
 
-class Server;
+#include <string>
+#include <vector>
 
-class Client
+class Registration
 {
-    public :
-        int id;
-        std::string nickname;
-        std::string username;
-        std::string real_name;
-};
+    public:
+        bool is_auth;
+        std::string command;
+        std::string password;
+        int client_index;
+        int socket_fd;
+        std::vector<struct pollfd> poll_fds;
+        Registration() : is_auth(false) {};
 
+};
 
 #endif

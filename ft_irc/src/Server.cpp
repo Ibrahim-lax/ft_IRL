@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/07/26 20:43:52 by librahim         ###   ########.fr       */
+/*   Updated: 2025/08/14 06:53:25 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,32 +65,93 @@ void Server::setup()
     freeaddrinfo(res);
 }
 
-void    parse_test(std::string m, std::string actual_pw)
+void    register_cmnd(Registration &reg)
 {
-    int i = 0;
-    int b;
+    if (reg.command.find("PASS") != std::string::npos)
+        reg.is_auth = password_check(reg);
+    else if (reg.command.find("NICK") != std::string::npos)
+    {
+        if (!reg.is_auth)
+        {
+            std::string text = "You need to Authenticate first\r\n";
+            send(reg.poll_fds.at(reg.client_index).fd, text.c_str(), text.length(), 0);
+            return;
+        }
+        nickname(reg);
+    }
+    else if (reg.command.find("USER") != std::string::npos)
+    {
+        std::cout << "USER command found" << std::endl;
+         if (!reg.is_auth)
+        {
+            std::string text = "You need to Authenticate first\r\n";
+            send(reg.poll_fds.at(reg.client_index).fd, text.c_str(), text.length(), 0);
+            return;
+        }
+        username(reg);
+    }
+    else
+    {
+        std::cout << "Unknown command: " << reg.command << std::endl;
+    }
+}
+
+bool    password_check(Registration &reg)
+{
+    int b = 0; 
     std::string pw;
-    b = m.find("PASS");
+    std::string text;
+    b = reg.command.find("PASS");
     if (b != std::string::npos)
     {
-        pw = m.substr(5);
+        pw = reg.command.substr(5);
         pw.pop_back();
-        pw.pop_back();
-        std::cout<<"command PASS found and the password after it is : [" <<pw<<"]"<< std::endl;
-        if (actual_pw == pw)
-            std::cout << "it matches, should now procceed to register client by processing NICK and USER commands after PASS"<< std::endl;
+        if (reg.password == pw)
+            text = "CORRECT PASSWORD\r\n";
         else
-            std::cout << "it doesnt matches , should cleanup connection data (client vector and poll struct) and close connection"<< std::endl;
+            text = "INCORRECT PASSWORD\r\n";
+        send(reg.poll_fds.at(reg.client_index).fd, text.c_str(), text.length(), 0);
     }
-    const char *s = m.c_str();
-    while(s[i])
+    // const char *s = m.c_str();
+    // while(s[i])
+    // {
+    //     if (s[i] == '\r')
+    //         std::cout << "carriage return detected" << std::endl;
+    //     if (s[i] == '\n')
+    //         std::cout << "line feed detected" << std::endl;
+    //     i++;
+    // }
+    return (reg.password == pw);
+}
+
+void    nickname(Registration &reg)
+{
+    int b = 0;
+    Client Cl;
+    b = reg.command.find("NICK");
+    if (b != std::string::npos)
     {
-        if (s[i] == '\r')
-            std::cout << "carriage return detected" << std::endl;
-        if (s[i] == '\n')
-            std::cout << "line feed detected" << std::endl;
-        i++;
+        std::string nick = reg.command.substr(5);
+        nick.pop_back();
+        Cl.nickname = nick;
     }
+    saveinfo(Cl, reg);
+}
+
+void    username(Registration &reg)
+{}
+
+void    saveinfo(Client &Cl, Registration &reg)
+{
+    Server::map_clients.insert(std::make_pair(reg.socket_fd, Cl));
+    for (std::map<int, Client>::iterator it = Server::map_clients.begin();
+     it != Server::map_clients.end();
+     ++it)
+{
+    std::cout << "Client FD: " << it->first
+              << ", Nickname: " << it->second.nickname
+              << std::endl;
+}
 }
 
 void Server::run()
@@ -103,6 +164,7 @@ void Server::run()
     size_t bytes_readen;
     socklen_t cl_len = sizeof(cl_adr);
     int i;
+    Registration R;
     while (true)
     {
         int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 10);
@@ -134,10 +196,13 @@ void Server::run()
                 if (bytes_readen > 0)
                 {
                     std::cout << "received message from client "<< i <<" :" << buf << std::endl;
-                    std::string str_buff = buf;
-                    parse_test(str_buff, this->pw);
+                    R.command = std::string(buf);
+                    R.password = this->get_serv_pw();
+                    R.poll_fds = this->poll_fds;
+                    R.client_index = i;
+                    R.socket_fd = this->poll_fds.at(i).fd;
+                    register_cmnd(R);
                     // parsing here :
-                    // AUTHENTICATion include parsing and runnin PASS NICK USER cmds in order                    
                     // JOIN
                     // PRIVMSG
                     std::string reply = "Welcome to ft_irc!\r\n";
