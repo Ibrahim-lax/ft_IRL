@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/14 06:43:09 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/15 02:24:52 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ class Server
 };
 
 bool    password_check(Registration &reg);
-void    nickname(Registration &reg);
+void    nickname(Client &client);
 void    username(Registration &reg);
-void    saveinfo(Client &Cl, Registration &reg);
+void    saveinfo(Client &Cl, int socket_fd);
 #endif

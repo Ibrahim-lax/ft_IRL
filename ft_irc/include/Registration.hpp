@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/14 02:59:27 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/08/14 05:12:18 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/15 02:44:31 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,11 +21,9 @@ class Registration
 {
     public:
         bool is_auth;
-        std::string command;
+        std::string message;
         std::string password;
-        int client_index;
         int socket_fd;
-        std::vector<struct pollfd> poll_fds;
         Registration() : is_auth(false) {};
 
 };
