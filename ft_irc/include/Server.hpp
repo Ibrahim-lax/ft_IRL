@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/15 02:24:52 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/15 06:34:47 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@
 #include <vector>
 #include <map>
 #include "Client.hpp"
-#include "Registration.hpp"
 
 class Client;
 class Registration;
@@ -48,8 +47,8 @@ class Server
         static std::map<int, Client> map_clients;
 };
 
-bool    password_check(Registration &reg);
-void    nickname(Client &client);
-void    username(Registration &reg);
-void    saveinfo(Client &Cl, int socket_fd);
+bool    password_check(int socket_fd, std::string message, std::string password);
+void    nickname(Client &client, std::string message);
+void    username(Client &Cl, std::string message);
+void    saveinfo(Client &Cl);
 #endif

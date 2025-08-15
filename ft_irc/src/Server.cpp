@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/15 03:04:14 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/15 10:45:13 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,106 +66,113 @@ void Server::setup()
     freeaddrinfo(res);
 }
 
-void    register_cmnd(Client &client)
+void    register_cmnd(Client &client, std::string message, std::string password)
 {
-    if (client.reg.message.find("PASS") != std::string::npos)
+    std::string text;
+    
+    if (message.find("PASS") != std::string::npos)
+        client.is_auth = password_check(client.socket_fd, message, password);
+    else if (message.find("NICK") != std::string::npos)
     {
-        client.reg.is_auth = password_check(client.reg);
-        std::cout << "IS AUTH: " << client.reg.is_auth << std::endl;
-    }
-    else if (client.reg.message.find("NICK") != std::string::npos)
-    {
-        std::cout << "IS AUTH: " << client.reg.is_auth << std::endl;
-        if (!client.reg.is_auth)
+        if (!client.is_auth)
         {
-            std::string text = "You need to Authenticate first\r\n";
-            send(client.reg.socket_fd, text.c_str(), text.length(), 0);
+            text = "You need to Authenticate first\r\n";
+            send(client.socket_fd, text.c_str(), text.length(), 0);
             return ;
         }
-        nickname(client);
+        nickname(client, message);
     }
-    else if (client.reg.message.find("USER") != std::string::npos)
+    else if (message.find("USER") != std::string::npos)
     {
         std::cout << "USER command found" << std::endl;
-         if (!client.reg.is_auth)
+         if (!client.is_auth)
         {
-            std::string text = "You need to Authenticate first\r\n";
-            send(client.reg.socket_fd, text.c_str(), text.length(), 0);
+            text = "You need to Authenticate first\r\n";
+            send(client.socket_fd, text.c_str(), text.length(), 0);
             return;
         }
-        username(client.reg);
+        username(client, message);
     }
     else
     {
-        std::cout << "Unknown command: " << client.reg.message << std::endl;
+        text = "Unknown command\r\n";
+        send(client.socket_fd, text.c_str(), text.length(), 0);
     }
-    std::cout << "2IS AUTH: " << client.reg.is_auth << std::endl;
 }
 
-bool    password_check(Registration &reg)
+bool    password_check(int socket_fd, std::string message, std::string password)
 {
-    int b = 0; 
     std::string pw;
     std::string text;
-    b = reg.message.find("PASS");
-    if (b != std::string::npos)
-    {
-        pw = reg.message.substr(5);
-        pw.pop_back();
-        if (reg.password == pw)
-            text = "CORRECT PASSWORD\r\n";
-        else
-            text = "INCORRECT PASSWORD\r\n";
-        send(reg.socket_fd, text.c_str(), text.length(), 0);
-    }
-    // const char *s = m.c_str();
-    // while(s[i])
-    // {
-    //     if (s[i] == '\r')
-    //         std::cout << "carriage return detected" << std::endl;
-    //     if (s[i] == '\n')
-    //         std::cout << "line feed detected" << std::endl;
-    //     i++;
-    // }
-    return (reg.password == pw);
+
+    pw = message.substr(5);
+    pw.pop_back();
+    if (password != pw)
+        text = "wrong password\r\n";
+    send(socket_fd, text.c_str(), text.length(), 0);
+    return (password == pw);
 }
-void    searchexistedsockets(Client &Cl,Registration &reg)
+
+bool    is_new_nickname(std::string nick, int socket_fd)
 {
-    std::map<int, Client>::iterator it = Server::map_clients.find(reg.socket_fd);
-    if (it != Server::map_clients.end())
+    std::string text;
+    for (std::map<int, Client>::iterator it = Server::map_clients.begin(); it != Server::map_clients.end(); ++it)
     {
-        it->second.nickname = Cl.nickname;
+        if (it->second.nickname == nick)
+        {
+            text = "Nickname already in use\r\n";
+            send(socket_fd, text.c_str(), text.length(), 0);
+            return false;
+        }
+    }
+    return true;
+}
+void    nickname(Client &client, std::string message)
+{
+    std::string nick = message.substr(5);
+    nick.pop_back();
+    client.nickname = nick;
+    if (is_new_nickname(nick, client.socket_fd))
+        saveinfo(client);
+}
+
+void    show_clients()
+{
+    std::cout << "Connected clients:" << std::endl;
+    for (std::map<int, Client>::iterator it = Server::map_clients.begin(); it != Server::map_clients.end(); ++it)
+    {
+        std::cout << "Socket FD: " << it->first << ", Nickname: " << it->second.nickname << std::endl;
+    }
+}
+
+void trim5(std::string message, std::vector<std::string> &array_string)
+{
+    size_t pos = 0;
+    std::string token;
+    while ((pos = message.find(" ")) != std::string::npos)
+    {
+        token = message.substr(0, pos);
+        array_string.push_back(token);
+        message.erase(0, pos + 1);
     }
 }
 
-void    nickname(Client &client)
+void    username(Client &Cl, std::string message)
 {
-    int b = 0;
-    b = client.reg.message.find("NICK");
-    if (b != std::string::npos)
+    std::vector<std::string> array_string;
+    if (message.find("USER"))
+        return ;
+    trim5(message, array_string);
+    for (size_t i = 0; i < array_string.size() + 1; i++)
     {
-        std::string nick = client.reg.message.substr(5);
-        nick.pop_back();
-        client.nickname = nick;
+        std::cout << "array_string[" << i << "] = " << array_string[i] << std::endl;
     }
-    searchexistedsockets(client, client.reg);
-    saveinfo(client, client.reg.socket_fd);
+    
 }
 
-void    username(Registration &reg)
-{}
-
-void    saveinfo(Client &Cl, int socket_fd)
+void    saveinfo(Client &Cl)
 {
-    Server::map_clients.insert(std::make_pair(socket_fd, Cl));
-    for (std::map<int, Client>::iterator it = Server::map_clients.begin();
-     it != Server::map_clients.end();
-     ++it)
-    {
-        std::cout << "Client FD: " << it->first
-                    << ", Nickname: " << it->second.nickname
-                    << std::endl;
-    }
+    Server::map_clients[Cl.socket_fd] = Cl;
 }
 
 void Server::run()
@@ -176,9 +183,9 @@ void Server::run()
     int size_cl =0;
     struct sockaddr_in cl_adr;
     size_t bytes_readen;
-    int old_client_fd = 0;
     socklen_t cl_len = sizeof(cl_adr);
-    Client new_client;
+    // Client client;
+    std::vector<Client> array_clients;
     int i;
     while (true)
     {
@@ -199,8 +206,8 @@ void Server::run()
             }
             size_cl++;
             std::cout << "User "<< size_cl << " joined the chat"<<std::endl; //size_cl<<" in total now" <<std::endl;
-            register_cl(&this->poll_fds, client_fd);
-            
+            register_cl(&this->poll_fds, client_fd); // vetor 
+            array_clients.push_back(Client(client_fd));  // vector -> 0_ -> sizecl 
         }
         i = 0;
         while (++i <= size_cl)
@@ -211,31 +218,15 @@ void Server::run()
                 bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
                 if (bytes_readen > 0)
                 {
-                    std::cout << "received message from client "<< i <<" :" << buf << std::endl;
-                    if (this->poll_fds.at(i).fd != old_client_fd)
-                    {
-                        std::map<int, Client>::iterator it = Server::map_clients.find(this->poll_fds.at(i).fd);
-                        if (it != Server::map_clients.end())
-                            new_client = it->second;
-                        else
-                        {
-                            Client Cl;
-                            new_client = Cl;   
-                        }
-                        old_client_fd = this->poll_fds.at(i).fd;
-                    }
-                    new_client.reg.message = std::string(buf);
-                    new_client.reg.password = this->get_serv_pw();
-                    new_client.reg.socket_fd = this->poll_fds.at(i).fd;
-                    std::cout << "0IS AUTH: " << new_client.reg.is_auth << std::endl;
-                    register_cmnd(new_client);
-                    std::cout << "3IS AUTH: " << new_client.reg.is_auth << std::endl;
-                    
-                    // parsing here :
-                    // JOIN
-                    // PRIVMSG
+                    std::cout << buf;
+                    if (!array_clients.at(i - 1).is_registered)
+                        register_cmnd(array_clients.at(i - 1), buf, this->pw);
+                    // // parsing here :
+                    // // JOIN
+                    // // PRIVMSG
                     std::string reply = "Welcome to ft_irc!\r\n";
                     send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
+                    show_clients();
                 }
                 else if (bytes_readen == 0)
                 {
