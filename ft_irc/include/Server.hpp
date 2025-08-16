@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/15 06:34:47 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/16 07:10:32 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,10 @@
 #include <vector>
 #include <map>
 #include "Client.hpp"
+#include "Channel.hpp"
 
 class Client;
-class Registration;
+class Channel;
 
 class Server
 {
@@ -45,6 +46,7 @@ class Server
         std::string get_serv_pw(){return pw;}
         void closeClient() {};
         static std::map<int, Client> map_clients;
+        static std::vector<Channel> channels;
 };
 
 bool    password_check(int socket_fd, std::string message, std::string password);
