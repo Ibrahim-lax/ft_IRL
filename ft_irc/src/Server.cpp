@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/15 10:45:13 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/16 03:16:17 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,14 @@ void Server::setup()
     freeaddrinfo(res);
 }
 
-void    register_cmnd(Client &client, std::string message, std::string password)
+void    register_cmd(Client &client, std::string message, std::string password)
+{
+    std::string text;
+
+    if (message.find("PASS") 
+}
+
+void    unregister_cmnd(Client &client, std::string message, std::string password)
 {
     std::string text;
     
@@ -84,7 +91,6 @@ void    register_cmnd(Client &client, std::string message, std::string password)
     }
     else if (message.find("USER") != std::string::npos)
     {
-        std::cout << "USER command found" << std::endl;
          if (!client.is_auth)
         {
             text = "You need to Authenticate first\r\n";
@@ -97,6 +103,14 @@ void    register_cmnd(Client &client, std::string message, std::string password)
     {
         text = "Unknown command\r\n";
         send(client.socket_fd, text.c_str(), text.length(), 0);
+    }
+    if (client.is_auth && client.is_nickname && client.is_username)
+    {
+        client.is_registered = true;
+        text = "Welcome to the ft_irc Network\r\n";
+        send(client.socket_fd, text.c_str(), text.length(), 0);
+        std::cout << "CLIENT CONNECTED, ON FD: " << client.socket_fd << std::endl;
+        saveinfo(client);
     }
 }
 
@@ -132,42 +146,93 @@ void    nickname(Client &client, std::string message)
     std::string nick = message.substr(5);
     nick.pop_back();
     client.nickname = nick;
+    client.is_nickname = true;
     if (is_new_nickname(nick, client.socket_fd))
         saveinfo(client);
 }
 
 void    show_clients()
 {
-    std::cout << "Connected clients:" << std::endl;
     for (std::map<int, Client>::iterator it = Server::map_clients.begin(); it != Server::map_clients.end(); ++it)
     {
-        std::cout << "Socket FD: " << it->first << ", Nickname: " << it->second.nickname << std::endl;
+        std::cout << "Socket FD: " << it->first << ", Nickname: " << it->second.nickname
+                  << ", Username: " << it->second.username
+                    << ", Real Name: " << it->second.real_name
+                    << ", Is Authenticated: " << (it->second.is_auth ? "Yes" : "No")
+                    << ", Is Registered: " << (it->second.is_registered ? "Yes" : "No") << std::endl;
     }
 }
 
-void trim5(std::string message, std::vector<std::string> &array_string)
+size_t skip_spaces(std::string message, size_t i)
 {
-    size_t pos = 0;
+    while (message[i] && message[i] == ' ')
+        i++;
+    return i;
+}
+
+void split_to_four(std::string message, std::vector<std::string> &array_string)
+{
+    size_t num = 0;
+    size_t i = 5;
+    size_t start = 0;
     std::string token;
-    while ((pos = message.find(" ")) != std::string::npos)
+    while(message[i] && message[i] == ' ')
+        i++;
+    start = i;
+    while (message[i])
     {
-        token = message.substr(0, pos);
-        array_string.push_back(token);
-        message.erase(0, pos + 1);
+        if ((message[i] == ' ' || message[i] == '\r' || message[i] == '\n') && num < 3)
+        {
+            token = message.substr(start, i - start);
+            array_string.push_back(token);
+            i = skip_spaces(message, i);
+            start = i;
+            num++;
+        }
+        if (!(message[i] == '\r' || message[i] == '\n') && num == 3)
+        {
+            while (message[i] && (message[i] != '\r' && message[i] != '\n'))
+                i++;
+            token = message.substr(start, i - start);
+            if (token.empty())
+                return ;
+            std::cout << token.length() << std::endl;
+            array_string.push_back(token);
+            return ;
+        }
+        else
+            i++;
     }
 }
 
+bool is_valid_user(std::vector<std::string> &array_string)
+{
+    if (array_string.size() != 4)
+        return false;
+    return true;
+}
 void    username(Client &Cl, std::string message)
 {
     std::vector<std::string> array_string;
     if (message.find("USER"))
         return ;
-    trim5(message, array_string);
-    for (size_t i = 0; i < array_string.size() + 1; i++)
+    split_to_four(message, array_string);
+    if (is_valid_user(array_string))
     {
-        std::cout << "array_string[" << i << "] = " << array_string[i] << std::endl;
+        Cl.username = array_string[0];
+        Cl.real_name = array_string[3];
+        Cl.is_username = true;
+        saveinfo(Cl);
     }
-    
+    else
+    {
+        std::string text = "Invalid USER command format\r\n";
+        send(Cl.socket_fd, text.c_str(), text.length(), 0);
+    }
+    for (size_t i = 0; i < array_string.size(); i++)
+    {
+        std::cout << "array_string[" << i << "] = " << "'" <<array_string[i]<< "'" << std::endl;
+    }
 }
 
 void    saveinfo(Client &Cl)
@@ -220,12 +285,12 @@ void Server::run()
                 {
                     std::cout << buf;
                     if (!array_clients.at(i - 1).is_registered)
-                        register_cmnd(array_clients.at(i - 1), buf, this->pw);
+                        unregister_cmnd(array_clients.at(i - 1), buf, this->pw);
+                    else
+                        register_cmd(array_clients.at(i - 1), buf, this->pw);
                     // // parsing here :
                     // // JOIN
                     // // PRIVMSG
-                    std::string reply = "Welcome to ft_irc!\r\n";
-                    send(this->poll_fds.at(i).fd, reply.c_str(), reply.length(), 0);
                     show_clients();
                 }
                 else if (bytes_readen == 0)

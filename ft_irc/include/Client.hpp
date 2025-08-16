@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/15 09:11:40 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/16 02:15:41 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,9 +22,12 @@ class Client
         bool        is_auth;
         bool        is_registered;
         int         socket_fd;
+        bool        is_nickname;
+        bool        is_username;
         std::string nickname;
         std::string username;
         std::string real_name;
+        
         Client() {
             // std::cout << "Client created" << std::endl;
             is_auth = false;
