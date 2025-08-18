@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/16 19:50:58 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/18 10:08:15 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@ class Client
     public :
         bool        is_auth;
         bool        is_registered;
-        bool        is_joined;
         int         socket_fd;
         bool        is_nickname;
         bool        is_username;
@@ -30,16 +29,16 @@ class Client
         std::string username;
         std::string real_name;
         std::vector<Channel> channelsjoined;
+        std::vector<Channel> banned_channels;
         
         Client() {
             // std::cout << "Client created" << std::endl;
             is_auth = false;
             is_registered = false;
-            is_joined = false;
             is_nickname = false;
             is_username = false;
         }
-        Client(int fd) : socket_fd(fd), is_auth(false), is_registered(false), is_joined(false)
+        Client(int fd) : socket_fd(fd), is_auth(false), is_registered(false)
         , is_nickname(false), is_username(false)
         {
             // std::cout << "Client created with fd: " << fd << std::endl;

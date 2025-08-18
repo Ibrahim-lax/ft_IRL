@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/08/16 07:07:57 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/18 10:13:43 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,11 @@ class Channel
 {
     public:
         std::string name;
-        std::vector<Client> clients;
+        int admin_socket_fd;
+        std::map<int, Client> clients;
+        Channel() : admin_socket_fd(-1) {}
+        Channel(std::string channel_name, int admin_fd) 
+            : name(channel_name), admin_socket_fd(admin_fd) {}
 };
 
 #endif
