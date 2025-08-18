@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 13:43:30 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/18 16:53:07 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,15 +137,15 @@ void    join(Client &client, std::string message)
         name = name.substr(0, b);
     if (exist_channel(name, client))
         return ;
-    Channel channel;
-    channel.name = name;
-    channel.admin_socket_fd = client.socket_fd;
-    client.channelsjoined.push_back(&channel);
-    std::cout << "channel joined: " << channel.name << std::endl;
+    Channel *channel = new Channel();
+    channel->name = name;
+    channel->admin_socket_fd = client.socket_fd;
+    client.channelsjoined.push_back(channel);
+    std::cout << "channel joined: " << channel->name << std::endl;
     std::cout << "channel joined: " << client.channelsjoined[0]->name << std::endl;
-    channel.clients.push_back(&client);
-    Server::channels.push_back(channel);
-    text = "You have joined the channel: " + channel.name + "\r\n";
+    channel->clients.push_back(&client);
+    Server::channels.push_back(*channel);
+    text = "You have joined the channel: " + channel->name + "\r\n";
     send(client.socket_fd, text.c_str(), text.length(), 0);
 }
 
@@ -369,6 +369,27 @@ void    nickname(Client &client, std::string message)
         client.nickname = nick;
 }
 
+void    show_channels()
+{
+    for (int i = 0; i < Server::channels.size(); i++)
+    {
+        std::cout << "Channel " << i + 1 << ": " << Server::channels[i].name << std::endl;
+        std::cout << "\t" << "Admin Socket FD: " << Server::channels[i].admin_socket_fd << std::endl;
+        std::cout << "\t" << "Clients in Channel: ";
+        if (Server::channels[i].clients.empty())
+            std::cout << "None" << std::endl;
+        else
+        {
+            for (size_t j = 0; j < Server::channels[i].clients.size(); j++)
+            {
+                std::cout << Server::channels[i].clients[j]->nickname << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "-----------------------------" << std::endl;
+    }
+}
+
 void    show_clients()
 {
     for (int i = 0; i < Server::array_clients.size(); i++)
@@ -386,14 +407,10 @@ void    show_clients()
             std::cout << "None" << std::endl;
         else
         {
-            for (size_t j = 0; j < Server::channels[i].clients.size(); j++)
+            for (size_t j = 0; j < Server::array_clients[i].channelsjoined.size(); j++)
             {
-                std::cout << Server::channels[i].clients[j]->nickname << " ";
+                std::cout << Server::array_clients[i].channelsjoined[j]->name << " ";
             }
-            // for (size_t j = 0; j < Server::array_clients[i].channelsjoined.size(); j++)
-            // {
-            //     std::cout << Server::array_clients[i].channelsjoined[j]->name << " ";
-            // }
             std::cout << std::endl;
         }
         std::cout << "-----------------------------" << std::endl;
@@ -410,6 +427,7 @@ void    show_clients()
         }
         std::cout << "-----------------------------" << std::endl;
     }
+    show_channels();
 }
 
 size_t skip_spaces(std::string message, size_t i)
