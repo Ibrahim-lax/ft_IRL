@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 10:08:15 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/18 12:06:32 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,8 @@ class Client
         std::string nickname;
         std::string username;
         std::string real_name;
-        std::vector<Channel> channelsjoined;
-        std::vector<Channel> banned_channels;
+        std::vector<Channel*> channelsjoined;
+        std::vector<Channel*> banned_channels;
         
         Client() {
             // std::cout << "Client created" << std::endl;
