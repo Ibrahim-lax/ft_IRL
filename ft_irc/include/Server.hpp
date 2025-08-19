@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 16:23:56 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/19 11:02:38 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,11 +46,11 @@ class Server
         std::string get_serv_pw(){return pw;}
         void closeClient() {};
         static std::vector<Channel> channels;
-        static std::vector<Client> array_clients;
+        static std::vector<Client*> array_clients;
 };
 
 bool    password_check(int socket_fd, std::string message, std::string password);
-void    nickname(Client &client, std::string message);
-void    username(Client &Cl, std::string message);
+void    nickname(Client *client, std::string message);
+void    username(Client *client, std::string message);
 
 #endif

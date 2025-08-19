@@ -6,14 +6,14 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 16:53:07 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/19 12:53:16 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 
 std::vector<Channel> Server::channels;
-std::vector<Client> Server::array_clients;
+std::vector<Client*> Server::array_clients;
 
 void    register_cl(std::vector<struct pollfd> *poll_fds, int cl_fd)
 {
@@ -68,46 +68,48 @@ void Server::setup()
     freeaddrinfo(res);
 }
 
-bool client_joined_channel(Client &client, size_t i)
+bool client_joined_channel(Client *client, size_t i)
 {
     for (size_t j = 0; j < Server::channels[i].clients.size(); j++)
     {
-        if (Server::channels[i].clients[j]->socket_fd == client.socket_fd)
+        if (Server::channels[i].clients[j]->socket_fd == client->socket_fd)
                 return true;
     }
     return false;
 }
 
-bool banned_channel(Client &client, std::string &channel_name)
+bool banned_channel(Client *client, std::string &channel_name)
 {
     std::cout << "inside banned_channel function" << std::endl;
-    std::cout << "N: banned channels size: " << client.banned_channels.size() << std::endl;
-    for (size_t i = 0; i < client.banned_channels.size(); i++)
+    std::cout << "N: banned channels size: " << client->banned_channels.size() << std::endl;
+    for (size_t i = 0; i < client->banned_channels.size(); i++)
     {
-        std::cout << "Checking banned channel: " << client.banned_channels[i]->name << std::endl;
-        if (client.banned_channels[i]->name == channel_name)
+        std::cout << "Checking banned channel: " << client->banned_channels[i]->name << std::endl;
+        if (client->banned_channels[i]->name == channel_name)
             return true;
     }
     return false;
 }
 
-bool    exist_channel(std::string name, Client &client)
+bool    exist_channel(std::string name, Client *client)
 {
     for (size_t i = 0; i < Server::channels.size(); i++)
     {
         if (Server::channels[i].name == name)
         {
             std::cout << "NAME OF CHANNEL: " << name << std::endl;
-            std::cout << "CLIENT NICKNAME: " << client.nickname << std::endl;
+            std::cout << "CLIENT NICKNAME: " << client->nickname << std::endl;
             if (banned_channel(client, name))
             {
                 std::string text = "You are banned from this channel\r\n";
-                send(client.socket_fd, text.c_str(), text.length(), 0);
+                send(client->socket_fd, text.c_str(), text.length(), 0);
             }
             else if (!client_joined_channel(client, i))
             {
-                client.channelsjoined.push_back(&Server::channels[i]);
-                Server::channels[i].clients.push_back(&client);
+                client->channelsjoined.push_back(&Server::channels[i]);
+                Server::channels[i].clients.push_back(client);
+                int j = Server::channels[i].clients.size() - 1;
+                // Server::channels[i].clients[j]->channelsjoined.push_back(&Server::channels[i]);
             }
             return true;
         }
@@ -116,7 +118,7 @@ bool    exist_channel(std::string name, Client &client)
 }
 
 
-void    join(Client &client, std::string message)
+void    join(Client *client, std::string message)
 {
     std::string text;
     std::string name;
@@ -125,7 +127,7 @@ void    join(Client &client, std::string message)
     if (b == std::string::npos)
     {
         text = "Invalid channel name\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     name = message.substr(b + 1);
@@ -139,14 +141,15 @@ void    join(Client &client, std::string message)
         return ;
     Channel *channel = new Channel();
     channel->name = name;
-    channel->admin_socket_fd = client.socket_fd;
-    client.channelsjoined.push_back(channel);
-    std::cout << "channel joined: " << channel->name << std::endl;
-    std::cout << "channel joined: " << client.channelsjoined[0]->name << std::endl;
-    channel->clients.push_back(&client);
+    channel->admin_socket_fd = client->socket_fd;
+    client->channelsjoined.push_back(channel);
     Server::channels.push_back(*channel);
+    int i = Server::channels.size() - 1;
+    Server::channels[i].clients.push_back(client);
+    int j = Server::channels[i].clients.size() - 1;
+    // Server::channels[i].clients[j]->channelsjoined.push_back(&Server::channels[i]);
     text = "You have joined the channel: " + channel->name + "\r\n";
-    send(client.socket_fd, text.c_str(), text.length(), 0);
+    send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -220,31 +223,31 @@ bool valid_channel(std::string &name, int *b)
     return false;
 }
 
-bool is_admin(Client &client, int i)
+bool is_admin(Client *client, int i)
 {
-    if (Server::channels[i].admin_socket_fd == client.socket_fd)
+    if (Server::channels[i].admin_socket_fd == client->socket_fd)
         return true;
     return false;
 }
 
-bool valid_nickname(std::string &nick, int i, int *socket_fd)
+bool valid_nickname(std::string &nick, int i, int *j)
 {
-    for (int j = 0; j < Server::channels[i].clients.size(); j++)
+    for (int k = 0; k < Server::channels[i].clients.size(); k++)
     {
-        if (Server::channels[i].clients[j]->nickname == nick)
+        if (Server::channels[i].clients[k]->nickname == nick)
         {
-            *socket_fd = Server::channels[i].clients[j]->socket_fd;
+            *j = k;
             return true;
         }
     }
     return false;    
 }
 
-void    kick(Client &client, std::string message)
+void    kick(Client *client, std::string message)
 {
     std::string text;
     int i = 0;
-    int socket_fd = -1;
+    int j = 0;
     std::string name_channel = channel_name(message);
     std::string nick_to_kick = nickname_to_kick(message);
     std::cout << "Channel name: " << name_channel << std::endl;
@@ -252,29 +255,35 @@ void    kick(Client &client, std::string message)
     if (!valid_channel(name_channel, &i))
     {
         text = "Invalid channel name\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     if (!is_admin(client, i))
     {
         text = "You are not an admin of this channel\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    if (!valid_nickname(nick_to_kick, i, &socket_fd))
+    if (!valid_nickname(nick_to_kick, i, &j))
     {
         text = "User not found in this channel\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    Server::array_clients[socket_fd].banned_channels.push_back(&Server::channels[i]);
+    if (Server::channels[i].clients[j]->socket_fd == client->socket_fd)
+    {
+        text = "You cannot kick yourself\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    Server::channels[i].clients[j]->banned_channels.push_back(&Server::channels[i]);
     text = "You have been kicked from the channel: " + Server::channels[i].name + "\r\n";
-    send(Server::array_clients[socket_fd].socket_fd, text.c_str(), text.length(), 0);
-    text = "You have kicked " + Server::array_clients[socket_fd].nickname + " from the channel: " + Server::channels[i].name + "\r\n";
-    send(client.socket_fd, text.c_str(), text.length(), 0);
+    send(Server::channels[i].clients[j]->socket_fd, text.c_str(), text.length(), 0);
+    text = "You have kicked " + Server::channels[i].clients[j]->nickname + " from the channel: " + Server::channels[i].name + "\r\n";
+    send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
-void    register_cmd(Client &client, std::string message, std::string password)
+void    register_cmd(Client *client, std::string message, std::string password)
 {
     std::string text;
 
@@ -291,28 +300,28 @@ void    register_cmd(Client &client, std::string message, std::string password)
     
 }
 
-void    unregister_cmnd(Client &client, std::string message, std::string password)
+void    unregister_cmnd(Client *client, std::string message, std::string password)
 {
     std::string text;
     
     if (message.find("PASS") != std::string::npos)
-        client.is_auth = password_check(client.socket_fd, message, password);
+        client->is_auth = password_check(client->socket_fd, message, password);
     else if (message.find("NICK") != std::string::npos)
     {
-        if (!client.is_auth)
+        if (!client->is_auth)
         {
             text = "You need to Authenticate first\r\n";
-            send(client.socket_fd, text.c_str(), text.length(), 0);
+            send(client->socket_fd, text.c_str(), text.length(), 0);
             return ;
         }
         nickname(client, message);
     }
     else if (message.find("USER") != std::string::npos)
     {
-         if (!client.is_auth)
+         if (!client->is_auth)
         {
             text = "You need to Authenticate first\r\n";
-            send(client.socket_fd, text.c_str(), text.length(), 0);
+            send(client->socket_fd, text.c_str(), text.length(), 0);
             return;
         }
         username(client, message);
@@ -320,14 +329,14 @@ void    unregister_cmnd(Client &client, std::string message, std::string passwor
     else
     {
         text = "Unknown command\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
     }
-    if (client.is_auth && client.is_nickname && client.is_username)
+    if (client->is_auth && client->is_nickname && client->is_username)
     {
-        client.is_registered = true;
+        client->is_registered = true;
         text = "Welcome to the ft_irc Network\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
-        std::cout << "CLIENT CONNECTED, ON FD: " << client.socket_fd << std::endl;
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        std::cout << "CLIENT CONNECTED, ON FD: " << client->socket_fd << std::endl;
     }
 }
 
@@ -350,7 +359,7 @@ bool    is_new_nickname(std::string nick, int socket_fd)
 
     for (int i = 0; i < Server::array_clients.size(); i++)
     {
-        if (Server::array_clients[i].nickname == nick)
+        if (Server::array_clients[i]->nickname == nick)
         {
             text = "Nickname already in use\r\n";
             send(socket_fd, text.c_str(), text.length(), 0);
@@ -360,13 +369,15 @@ bool    is_new_nickname(std::string nick, int socket_fd)
     return true;
 }
 
-void    nickname(Client &client, std::string message)
+void    nickname(Client *client, std::string message)
 {
     std::string nick = message.substr(5);
     nick.pop_back();
-    client.is_nickname = true;
-    if (is_new_nickname(nick, client.socket_fd))
-        client.nickname = nick;
+    if (is_new_nickname(nick, client->socket_fd))
+    {
+        client->nickname = nick;
+        client->is_nickname = true;
+    }
 }
 
 void    show_channels()
@@ -395,33 +406,33 @@ void    show_clients()
     for (int i = 0; i < Server::array_clients.size(); i++)
     {
         std::cout << "Client " << i + 1 << ": " << std::endl;
-        std::cout << "Socket FD: " << Server::array_clients[i].socket_fd << std::endl;
-        std::cout << "\t" << "Nickname: " << Server::array_clients[i].nickname << std::endl;
-        std::cout << "\t" << "Username: " << Server::array_clients[i].username << std::endl;
-        std::cout << "\t" << "Real Name: " << Server::array_clients[i].real_name << std::endl;
-        std::cout << "\t" << "Is Authenticated: " << (Server::array_clients[i].is_auth ? "Yes" : "No") << std::endl;
-        std::cout << "\t" << "Is Registered: " << (Server::array_clients[i].is_registered ? "Yes" : "No") << std::endl;
+        std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
+        std::cout << "\t" << "Nickname: " << Server::array_clients[i]->nickname << std::endl;
+        std::cout << "\t" << "Username: " << Server::array_clients[i]->username << std::endl;
+        std::cout << "\t" << "Real Name: " << Server::array_clients[i]->real_name << std::endl;
+        std::cout << "\t" << "Is Authenticated: " << (Server::array_clients[i]->is_auth ? "Yes" : "No") << std::endl;
+        std::cout << "\t" << "Is Registered: " << (Server::array_clients[i]->is_registered ? "Yes" : "No") << std::endl;
         std::cout << "----------------------------" << std::endl;
         std::cout << "\t" << "Channels Joined: ";
-        if (Server::array_clients[i].channelsjoined.empty())
+        if (Server::array_clients[i]->channelsjoined.empty())
             std::cout << "None" << std::endl;
         else
         {
-            for (size_t j = 0; j < Server::array_clients[i].channelsjoined.size(); j++)
+            for (size_t j = 0; j < Server::array_clients[i]->channelsjoined.size(); j++)
             {
-                std::cout << Server::array_clients[i].channelsjoined[j]->name << " ";
+                std::cout << Server::array_clients[i]->channelsjoined[j]->name << " ";
             }
             std::cout << std::endl;
         }
         std::cout << "-----------------------------" << std::endl;
         std::cout << "\t" << "Banned Channels: ";
-        if (Server::array_clients[i].banned_channels.empty())
+        if (Server::array_clients[i]->banned_channels.empty())
             std::cout << "None" << std::endl;
         else
         {
-            for (size_t j = 0; j < Server::array_clients[i].banned_channels.size(); j++)
+            for (size_t j = 0; j < Server::array_clients[i]->banned_channels.size(); j++)
             {
-                std::cout << Server::array_clients[i].banned_channels[j]->name << " ";
+                std::cout << Server::array_clients[i]->banned_channels[j]->name << " ";
             }
             std::cout << std::endl;
         }
@@ -488,7 +499,7 @@ std::string realname(std::string message)
     return message;
 }
 
-void    username(Client &client, std::string message)
+void    username(Client *client, std::string message)
 {
     std::vector<std::string> array_string;
     if (message.find("USER"))
@@ -496,14 +507,14 @@ void    username(Client &client, std::string message)
     split_to_four(message, array_string);
     if (is_valid_user(array_string))
     {
-        client.username = array_string[0];
-        client.real_name = realname(array_string[3]);
-        client.is_username = true;
+        client->username = array_string[0];
+        client->real_name = realname(array_string[3]);
+        client->is_username = true;
     }
     else
     {
         std::string text = "Invalid USER command format\r\n";
-        send(client.socket_fd, text.c_str(), text.length(), 0);
+        send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     for (size_t i = 0; i < array_string.size(); i++)
     {
@@ -543,7 +554,7 @@ void Server::run()
             size_cl++;
             std::cout << "User "<< size_cl << " joined the chat"<<std::endl; //size_cl<<" in total now" <<std::endl;
             register_cl(&this->poll_fds, client_fd); // vetor 
-            array_clients.push_back(Client(client_fd));  // vector -> 0_ -> sizecl 
+            array_clients.push_back(new Client(client_fd));  // vector -> 0_ -> sizecl 
         }
         i = 0;
         while (++i <= size_cl)
@@ -555,7 +566,7 @@ void Server::run()
                 if (bytes_readen > 0)
                 {
                     std::cout << buf;
-                    if (!array_clients.at(i - 1).is_registered)
+                    if (!array_clients.at(i - 1)->is_registered)
                         unregister_cmnd(array_clients.at(i - 1), buf, this->pw);
                     else
                         register_cmd(array_clients.at(i - 1), buf, this->pw);
