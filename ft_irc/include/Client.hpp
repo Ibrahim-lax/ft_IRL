@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 10:08:15 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/18 16:13:31 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,10 @@
 #define CLIENT_HPP
 #include "Server.hpp"
 
+
+
+
+// opp should not self-remove  
 class Server;
 class Channel;
 
@@ -24,6 +28,7 @@ class Client
         bool        is_registered;
         int         socket_fd;
         bool        is_nickname;
+        bool        is_admin; // added by yoo
         bool        is_username;
         std::string nickname;
         std::string username;
