@@ -6,7 +6,7 @@
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/18 16:13:31 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/08/19 10:07:06 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,8 +33,8 @@ class Client
         std::string nickname;
         std::string username;
         std::string real_name;
-        std::vector<Channel> channelsjoined;
-        std::vector<Channel> banned_channels;
+        std::vector<Channel*> channelsjoined;
+        std::vector<Channel*> banned_channels;
         
         Client() {
             // std::cout << "Client created" << std::endl;

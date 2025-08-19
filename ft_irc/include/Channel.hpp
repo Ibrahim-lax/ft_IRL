@@ -1,14 +1,15 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   channel.hpp                                        :+:      :+:    :+:   */
+/*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/08/18 14:27:11 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/08/19 10:07:25 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #ifndef CHANNEL_HPP
 #define CHANNEL_HPP
@@ -26,7 +27,7 @@ class Channel
     public:
         std::string name;
         int admin_socket_fd;
-        std::map<int, Client> clients;
+        std::vector<Client*> clients;
         Channel() : admin_socket_fd(-1) {}
         Channel(std::string channel_name, int admin_fd) 
             : name(channel_name), admin_socket_fd(admin_fd) {}
