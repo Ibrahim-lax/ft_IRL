@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/19 12:53:16 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/20 15:35:07 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,6 +91,23 @@ bool banned_channel(Client *client, std::string &channel_name)
     return false;
 }
 
+bool    join_invite_only(Client *client, size_t i)
+{
+    std::string text;
+    if (client->invited_channels.empty())
+        return false;
+    for (int l = 0; l < client->invited_channels.size(); l++)
+    {
+        std::cout << "Checking invited channel: " << client->invited_channels[l]->name << std::endl;
+        if (client->invited_channels[l]->name == Server::channels[i].name)
+        {
+            std::cout << "INVITE ONLY SUCCESSFUL" << std::endl;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool    exist_channel(std::string name, Client *client)
 {
     for (size_t i = 0; i < Server::channels.size(); i++)
@@ -106,6 +123,12 @@ bool    exist_channel(std::string name, Client *client)
             }
             else if (!client_joined_channel(client, i))
             {
+                if (Server::channels[i].is_invite_only)
+                {
+                    std::cout << "iam inside invite only channel" << std::endl;
+                    if (!join_invite_only(client, i))
+                        return true;
+                }
                 client->channelsjoined.push_back(&Server::channels[i]);
                 Server::channels[i].clients.push_back(client);
                 int j = Server::channels[i].clients.size() - 1;
@@ -283,6 +306,174 @@ void    kick(Client *client, std::string message)
     send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
+std::string nickname_to_invite(std::string &message)
+{
+    std::string nick;
+    size_t i = message.find(" ");
+    if (i != std::string::npos)
+    {
+        nick = message.substr(0, i);
+        message = message.substr(i + 1);
+        return nick;
+    }
+    else
+        return "";
+}
+
+std::string channel_name_invite(std::string &message)
+{
+    std::string name;
+    size_t i = message.find(" ");
+    if (i == std::string::npos)
+    {
+        i = message.find("\n");
+        if (i == std::string::npos)
+            return "";
+        name = message.substr(1, i - 1);
+        return name;
+    }
+    name = message.substr(0, i);
+    return name;
+}
+
+bool    user_not_found(std::string &nick, size_t *index)
+{
+    for (size_t i = 0; i < Server::array_clients.size(); i++)
+    {
+        if (Server::array_clients[i]->nickname == nick)
+        {
+            *index = i;
+            return false;
+        }
+    }
+    return true;
+}
+
+bool    channel_not_found(std::string &name_channel, Channel *&channel)
+{
+    for (size_t i = 0; i < Server::channels.size(); i++)
+    {
+        if (Server::channels[i].name == name_channel)
+        {
+            channel = &Server::channels[i];
+            std::cout << "Channel found: " << channel->name << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+bool    already_seted(Channel *channel, Client client)
+{
+    for (size_t i = 0; i < client.invited_channels.size(); i++)
+    {
+        if (client.invited_channels[i]->name == channel->name)
+            return true;
+    }
+    return false;
+}
+
+void    show_array_clients()
+{
+    for (int i = 0; i < Server::array_clients.size(); i++)
+    {
+        std::cout << "Client " << i + 1 << ": " << Server::array_clients[i]->nickname << std::endl;
+        for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
+        {
+            std::cout << "\t" << "Invited to channel: " << Server::array_clients[i]->invited_channels[j]->name << std::endl;
+        }
+    }
+}
+
+void    show_array_channels()
+{
+    for (int i = 0; i < Server::channels.size(); i++)
+    {
+        std::cout << "Channel " << i + 1 << ": " << Server::channels[i].name << std::endl;
+        for (int j = 0; j < Server::channels[i].clients.size(); j++)
+        {
+            std::cout << "\t" << "Client: " << Server::channels[i].clients[j]->nickname << std::endl;
+            for (size_t k = 0; k < Server::channels[i].clients[j]->invited_channels.size(); k++)
+            {
+                std::cout << "\t\t" << "Invited to channel: " << Server::channels[i].clients[j]->invited_channels[k]->name << std::endl;
+            }
+        }
+    }
+}
+
+bool    is_inviter_joined(Channel *channel, Client *client)
+{
+    for (size_t i = 0; i < channel->clients.size(); i++)
+    {
+        if (channel->clients[i]->socket_fd == client->socket_fd)
+            return true;
+    }
+    return false;
+}
+
+bool    is_invited_joined(Channel *channel, Client *client)
+{
+    for (size_t i = 0; i < client->channelsjoined.size(); i++)
+    {
+        if (client->channelsjoined[i]->name == channel->name)
+            return true;
+    }
+    return false;
+}
+
+void    invite(Client *client, std::string &message)
+{
+    std::string text;
+    message = message.substr(7);
+    std::string nick_to_invite = nickname_to_invite(message);
+    std::string name_channel = channel_name_invite(message);
+    size_t i = 0;
+    Channel *channel = NULL;
+    
+    std::cout << "####  Nickname to invite: " << nick_to_invite << std::endl;
+    std::cout << "####  Channel name: " << name_channel << std::endl;
+    if (user_not_found(nick_to_invite, &i))
+    {
+        text = "User not found\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    if (channel_not_found(name_channel, channel))
+    {
+        text = "you are invited to the channel: " + name_channel + "\r\n";
+        send(Server::array_clients[i]->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    if (!is_inviter_joined(channel, client))
+    {
+        text = "You are not joined to this channel\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    if (is_invited_joined(channel, Server::array_clients[i]))
+    {
+        text = "this user is already joined to this channel\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    channel->is_invite_only = true; // Set the channel to invite only if not already set
+    if (channel->is_invite_only && !(client->socket_fd == channel->admin_socket_fd))
+    {
+        text = "you are not allowed to invite users to this channel\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    std::cout << "{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}" << std::endl;
+    if (!already_seted(channel, *Server::array_clients[i]))
+         Server::array_clients[i]->invited_channels.push_back(channel);
+    show_array_clients();
+    show_array_channels();
+    text = "You have invited " + Server::array_clients[i]->nickname + " to the channel: " + name_channel + "\r\n";
+    send(client->socket_fd, text.c_str(), text.length(), 0);
+    text = "You have been invited to the channel: " + name_channel + "\r\n";
+    send(Server::array_clients[i]->socket_fd, text.c_str(), text.length(), 0);
+}
+
 void    register_cmd(Client *client, std::string message, std::string password)
 {
     std::string text;
@@ -295,6 +486,8 @@ void    register_cmd(Client *client, std::string message, std::string password)
     }
     else if (message.find("KICK") != std::string::npos)
         kick(client, message);
+    else if (message.find("INVITE") != std::string::npos)
+        invite(client, message);
     // else
     //     msg(client, message);
     
