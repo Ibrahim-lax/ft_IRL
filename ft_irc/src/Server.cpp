@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/20 15:35:07 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/21 14:20:37 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,11 @@ bool client_joined_channel(Client *client, size_t i)
     for (size_t j = 0; j < Server::channels[i].clients.size(); j++)
     {
         if (Server::channels[i].clients[j]->socket_fd == client->socket_fd)
-                return true;
+        {
+            std::string text = "You are already joined to this channel\r\n";
+            send(client->socket_fd, text.c_str(), text.length(), 0);
+            return true;
+        }
     }
     return false;
 }
@@ -266,6 +270,20 @@ bool valid_nickname(std::string &nick, int i, int *j)
     return false;    
 }
 
+void    un_invite(Client *client, Channel &channel)
+{
+    for (size_t i = 0; i < client->invited_channels.size(); i++)
+    {
+        if (client->invited_channels[i]->name == channel.name)
+        {
+            client->invited_channels.erase(
+                std::remove(client->invited_channels.begin(), client->invited_channels.end(), &channel),
+                client->invited_channels.end());
+            return ;
+        }
+    }
+}
+
 void    kick(Client *client, std::string message)
 {
     std::string text;
@@ -300,6 +318,17 @@ void    kick(Client *client, std::string message)
         return ;
     }
     Server::channels[i].clients[j]->banned_channels.push_back(&Server::channels[i]);
+    Server::channels[i].clients[j]->channelsjoined.erase(
+        std::remove(Server::channels[i].clients[j]->channelsjoined.begin(),
+                    Server::channels[i].clients[j]->channelsjoined.end(),
+                    &Server::channels[i]),
+        Server::channels[i].clients[j]->channelsjoined.end());
+    Server::channels[i].clients.erase(
+        std::remove(Server::channels[i].clients.begin(),
+                    Server::channels[i].clients.end(),
+                    Server::channels[i].clients[j]),
+        Server::channels[i].clients.end());
+    un_invite(Server::channels[i].clients[j], Server::channels[i]);
     text = "You have been kicked from the channel: " + Server::channels[i].name + "\r\n";
     send(Server::channels[i].clients[j]->socket_fd, text.c_str(), text.length(), 0);
     text = "You have kicked " + Server::channels[i].clients[j]->nickname + " from the channel: " + Server::channels[i].name + "\r\n";
@@ -421,6 +450,20 @@ bool    is_invited_joined(Channel *channel, Client *client)
     return false;
 }
 
+void    un_banned_channel(Client *client, Channel *channel)
+{
+    for (int i = 0; i< client->banned_channels.size(); i++)
+    {
+        if (client->banned_channels[i]->name == channel->name)
+        {
+            client->banned_channels.erase(
+                std::remove(client->banned_channels.begin(), client->banned_channels.end(), channel),
+                client->banned_channels.end());
+            return ;
+        }   
+    }
+}
+
 void    invite(Client *client, std::string &message)
 {
     std::string text;
@@ -466,6 +509,7 @@ void    invite(Client *client, std::string &message)
     std::cout << "{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}" << std::endl;
     if (!already_seted(channel, *Server::array_clients[i]))
          Server::array_clients[i]->invited_channels.push_back(channel);
+    un_banned_channel(Server::array_clients[i], channel);
     show_array_clients();
     show_array_channels();
     text = "You have invited " + Server::array_clients[i]->nickname + " to the channel: " + name_channel + "\r\n";
