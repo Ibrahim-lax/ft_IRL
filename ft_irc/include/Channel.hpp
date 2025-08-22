@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/08/20 15:19:56 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/08/22 13:15:51 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,9 @@ class Channel
         Channel(std::string channel_name, int admin_fd) 
             : name(channel_name), admin_socket_fd(admin_fd), is_invite_only(false)
              {}
+        bool operator==(const Channel &other) const {
+            return name == other.name; 
+        }
 };
 
 #endif

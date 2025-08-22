@@ -1,0 +1,1 @@
+c++ src/Server.cpp src/main.cpp -o S
