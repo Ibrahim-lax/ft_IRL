@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/31 15:19:52 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/01 13:42:12 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -296,7 +296,7 @@ bool    max_channel_reached(Client *client)
     return false;
 }
 
-std::string get_key(std::vector<std::string> &array_keys, int i)
+std::string get_key(std::vector<std::string> &array_keys, size_t i)
 {
     
     std::cout << "size of k" << std::endl;
@@ -320,7 +320,7 @@ void    join(Client *client, std::string &message)
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    for (int i = 0; i < array_channels.size(); i++)
+    for (size_t i = 0; i < array_channels.size(); i++)
     {
         if (max_channel_reached(client))
             return ;
@@ -358,7 +358,7 @@ bool valid_channel(std::string &channel_name, Client *client, int *i)
     if (!is_valid_mask(channel_name, client))
         return false;
     channel_name = channel_name.substr(1);
-    for (int j = 0; j < Server::channels.size(); j++)
+    for (size_t j = 0; j < Server::channels.size(); j++)
     {
         if (Server::channels[j]->name == channel_name)
         {
@@ -604,7 +604,7 @@ bool    already_seted(Channel *channel, Client *client)
 
 void    show_array_clients()
 {
-    for (int i = 0; i < Server::array_clients.size(); i++)
+    for (size_t i = 0; i < Server::array_clients.size(); i++)
     {
         std::cout << "Client " << i + 1 << ": " << Server::array_clients[i]->nickname << std::endl;
         for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
@@ -616,10 +616,10 @@ void    show_array_clients()
 
 void    show_array_channels()
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (size_t i = 0; i < Server::channels.size(); i++)
     {
         std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
-        for (int j = 0; j < Server::channels[i]->clients.size(); j++)
+        for (size_t j = 0; j < Server::channels[i]->clients.size(); j++)
         {
             std::cout << "\t" << "Client: " << Server::channels[i]->clients[j]->nickname << std::endl;
             for (size_t k = 0; k < Server::channels[i]->clients[j]->invited_channels.size(); k++)
@@ -652,7 +652,7 @@ bool    is_invited_joined(Channel *channel, Client *client)
 
 void    un_banned_channel(Client *client, Channel *channel)
 {
-    for (int i = 0; i< client->banned_channels.size(); i++)
+    for (size_t i = 0; i< client->banned_channels.size(); i++)
     {
         if (client->banned_channels[i]->name == channel->name)
         {
@@ -782,6 +782,12 @@ void    parse_quit_parameters(std::string &message, std::string &reason)
     reason = message.substr(i);
 }
 
+void    l(void)
+{
+    system("leaks S");
+    exit(1);
+}
+
 void    quit(Client *client, std::string message, Server *server, int i)
 {
     std::string text;
@@ -795,8 +801,9 @@ void    quit(Client *client, std::string message, Server *server, int i)
     send(client->socket_fd, text.c_str(), text.length(), 0);
     close(server->poll_fds[i].fd);
     server->poll_fds.erase(server->poll_fds.begin() + i);
-    delete_client(i);
+    // delete_client(i);
     server->size_cl--;
+    l();
 }
 
 void    unknown_cmd(Client *client)
@@ -805,7 +812,7 @@ void    unknown_cmd(Client *client)
     send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
-void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i)
+void    register_cmd(Client *client, std::string cmd, std::string message, Server *server, int i)
 {
     std::string text;
 
@@ -917,7 +924,7 @@ bool    is_new_nickname(std::string nick, int socket_fd)
 {
     std::string text;
 
-    for (int i = 0; i < Server::array_clients.size(); i++)
+    for (size_t i = 0; i < Server::array_clients.size(); i++)
     {
         if (Server::array_clients[i]->nickname == nick)
         {
@@ -955,7 +962,7 @@ void    nickname(Client *client, std::string nick)
 
 void    show_channels()
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (size_t i = 0; i < Server::channels.size(); i++)
     {
         std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
         std::cout << "\t" << "Admin Socket FD: " << Server::channels[i]->admin_socket_fd << std::endl;
@@ -976,7 +983,7 @@ void    show_channels()
 
 void    show_clients()
 {
-    for (int i = 0; i < Server::array_clients.size(); i++)
+    for (size_t i = 0; i < Server::array_clients.size(); i++)
     {
         std::cout << "Client " << i + 1 << ": " << std::endl;
         std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
@@ -1071,7 +1078,7 @@ bool is_valid_user(std::vector<std::string> &array_string, Client *client)
 
 std::string realname(std::string message)
 {
-    int b = 0;
+    size_t b = 0;
 
     b = message.find(':');
     if (b != std::string::npos)
@@ -1140,7 +1147,7 @@ void    erase_channel_from_invited_channels(Channel *channel)
 
 void    remove_channel(Channel *channel)
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (size_t i = 0; i < Server::channels.size(); i++)
     {
         if (Server::channels[i]->name == channel->name)
         {
@@ -1181,7 +1188,7 @@ void    reclame_channel(Channel *channel, Client *client)
 
 void    handle_channels(int i)
 {
-    for (int j = 0; j < Server::array_clients[i - 1]->channelsjoined.size(); j++)
+    for (size_t j = 0; j < Server::array_clients[i - 1]->channelsjoined.size(); j++)
     {
         std::cout << "Handling channel: " << Server::array_clients[i - 1]->channelsjoined[j]->name << std::endl;
         Channel *channel = Server::array_clients[i - 1]->channelsjoined[j];
@@ -1279,7 +1286,7 @@ void Server::run()
                     if (!array_clients.at(i - 1)->is_registered)
                         unregister_cmnd(array_clients.at(i - 1), cmd, message, this->pw);
                     else
-                        register_cmd(array_clients.at(i - 1), cmd, message, this->pw, this, i);
+                        register_cmd(array_clients.at(i - 1), cmd, message, this, i);
                     // // parsing here :
                     // // JOIN
                     // // PRIVMSG

@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/08/27 16:08:49 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/01 13:38:46 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,10 +24,10 @@ class Channel
         std::string name;
         int admin_socket_fd;
         std::vector<Client*> clients;
-        std::string password;
-        int limit;
+        size_t limit;
         bool is_invite_only;
         bool is_password_required;
+        std::string password;
         bool is_limit_set;
         Channel() : admin_socket_fd(-1), is_invite_only(false) , is_password_required(false), password(""), is_limit_set(false)
             {}
