@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/27 13:02:54 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/01 20:24:28 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,5 @@ class Client
             // std::cout << "Client created with fd: " << fd << std::endl;
         }
 };
-
 
 #endif

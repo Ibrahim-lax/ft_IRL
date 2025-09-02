@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/08/27 16:04:54 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/02 03:05:32 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +30,6 @@
 #define COMMA 44
 #define MAX_CHANNELS 10
 
-const std::string ERR_NEEDMOREPARAMS = "461";
-const std::string ERR_ALREADYREGISTERED = "462";
 
 class Client;
 class Channel;
