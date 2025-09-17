@@ -6,7 +6,7 @@
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/09/17 10:18:37 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/17 13:06:39 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,11 +112,11 @@ void privmsg(Client *client, std::string &message, Server *server)
     while (i < message.size() && message[i] == ' ')
         i++; // skip spaces
 
-    // extract target (channel or nickname)
-    std::string target;
+    // extract targets (comma-separated)
+    std::string targets;
     while (i < message.size() && message[i] != ' ')
     {
-        target += message[i];
+        targets += message[i];
         i++;
     }
 
@@ -139,79 +139,96 @@ void privmsg(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // PRIVMSG to channel
-    if (!target.empty() && target[0] == '#')
+    // split targets by comma
+    std::string::size_type start = 0;
+    std::string::size_type end = 0;
+    while (end != std::string::npos)
     {
-        std::string chanName = target.substr(1); // remove '#'
-        Channel *channel = NULL;
+        end = targets.find(',', start);
+        std::string target;
+        if (end == std::string::npos)
+            target = targets.substr(start);
+        else
+            target = targets.substr(start, end - start);
 
-        // find channel
-        for (size_t j = 0; j < server->channels.size(); j++)
+        start = (end == std::string::npos) ? end : end + 1;
+
+        if (target.empty())
+            continue;
+
+        // PRIVMSG to channel
+        if (target[0] == '#')
         {
-            if (server->channels[j]->name == chanName)
+            std::string chanName = target.substr(1); // remove '#'
+            Channel *channel = 0;
+
+            // find channel
+            for (size_t j = 0; j < server->channels.size(); j++)
             {
-                channel = server->channels[j];
-                break;
+                if (server->channels[j]->name == chanName)
+                {
+                    channel = server->channels[j];
+                    break;
+                }
+            }
+
+            if (!channel)
+            {
+                std::string reply = "403 " + target + " :No such channel\r\n";
+                send(client->socket_fd, reply.c_str(), reply.length(), 0);
+                continue;
+            }
+
+            // check if sender is in channel
+            bool inChannel = false;
+            for (size_t j = 0; j < channel->clients.size(); j++)
+            {
+                if (channel->clients[j] == client)
+                {
+                    inChannel = true;
+                    break;
+                }
+            }
+            if (!inChannel)
+            {
+                std::string reply = "442 " + target + " :You're not on that channel\r\n";
+                send(client->socket_fd, reply.c_str(), reply.length(), 0);
+                continue;
+            }
+
+            // build broadcast message
+            std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
+
+            // send to all except sender
+            for (size_t j = 0; j < channel->clients.size(); j++)
+            {
+                if (channel->clients[j] != client)
+                    send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
             }
         }
-
-        if (!channel)
+        else // PRIVMSG to nickname
         {
-            std::string reply = "403 " + target + " :No such channel\r\n";
-            send(client->socket_fd, reply.c_str(), reply.length(), 0);
-            return;
-        }
-
-        // check if sender is in channel
-        bool inChannel = false;
-        for (size_t j = 0; j < channel->clients.size(); j++)
-        {
-            if (channel->clients[j] == client)
+            Client *receiver = 0;
+            for (size_t j = 0; j < server->array_clients.size(); j++)
             {
-                inChannel = true;
-                break;
+                if (server->array_clients[j]->nickname == target)
+                {
+                    receiver = server->array_clients[j];
+                    break;
+                }
             }
-        }
-        if (!inChannel)
-        {
-            std::string reply = "442 " + target + " :You're not on that channel\r\n";
-            send(client->socket_fd, reply.c_str(), reply.length(), 0);
-            return;
-        }
 
-        // build broadcast message
-        std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
-
-        // send to all except sender
-        for (size_t j = 0; j < channel->clients.size(); j++)
-        {
-            if (channel->clients[j] != client)
-                send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
-        }
-    }
-    else // PRIVMSG to nickname
-    {
-        Client *receiver = NULL;
-
-        for (size_t j = 0; j < server->array_clients.size(); j++)
-        {
-            if (server->array_clients[j]->nickname == target)
+            if (!receiver)
             {
-                receiver = server->array_clients[j];
-                break;
+                std::string reply = "401 " + target + " :No such nick\r\n";
+                send(client->socket_fd, reply.c_str(), reply.length(), 0);
+                continue;
             }
-        }
 
-        if (!receiver)
-        {
-            std::string reply = "401 " + target + " :No such nick\r\n";
-            send(client->socket_fd, reply.c_str(), reply.length(), 0);
-            return;
+            // build direct message
+            std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
+            send(receiver->socket_fd, notify.c_str(), notify.length(), 0);
         }
-
-        // build direct message
-        std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
-        send(receiver->socket_fd, notify.c_str(), notify.length(), 0);
     }
 }
 
