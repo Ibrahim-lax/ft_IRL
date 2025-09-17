@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/02 03:05:32 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/17 13:49:23 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,8 @@ class Server
         void closeClient() {};
         static std::vector<Channel*> channels;
         static std::vector<Client*> array_clients;
+        
+        void execute(Client *client, std::string &message, int i);
 };
 
 bool    password_check(int socket_fd, std::string message, std::string password);

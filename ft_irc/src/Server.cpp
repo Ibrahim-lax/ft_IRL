@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/02 03:05:53 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/17 13:52:07 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1310,6 +1310,15 @@ void    delete_client(int i)
     delete client;
 }
 
+void    Server::execute(Client *client, std::string &message, int i)
+{
+    std::string cmd = command(message);
+    if (!client->is_registered)
+        unregister_cmnd(client, cmd, message, this->pw);
+    else
+        register_cmd(client, cmd, message, this->pw, this, i);
+}
+
 void Server::run()
 {
     int client_fd;
@@ -1351,16 +1360,16 @@ void Server::run()
                 bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
                 if (bytes_readen > 0)
                 {
-                    std::cout << buf;
-                    std::string message = buf;
-                    std::string cmd = command(message);
-                    if (!array_clients.at(i - 1)->is_registered)
-                        unregister_cmnd(array_clients.at(i - 1), cmd, message, this->pw);
-                    else
-                        register_cmd(array_clients.at(i - 1), cmd, message, this->pw, this, i);
-                    // // parsing here :
-                    // // JOIN
-                    // // PRIVMSG
+                    buf[bytes_readen] = '\0';
+                    std::string str(buf);
+                    std::string curr;
+                    int pos = 0;
+                    while ((pos = str.find_first_of("\r\n")) != std::string::npos)
+                    {
+                        curr = str.substr(0, pos);
+                        execute(array_clients.at(i - 1), curr, i);
+                        str.erase(0, pos + 1);
+                    }
                     show_clients();
                 }
                 else if (bytes_readen == 0)
