@@ -6,7 +6,7 @@
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/09/02 03:06:47 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/17 10:18:37 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,27 +15,27 @@
 void topic(Client *client, std::string &message, Server *server)
 {
     size_t i = 0;
-    while (message[i] == ' ') i++; // skip spaces
+    while (i < message.size() && message[i] == ' ') i++; // skip spaces
 
     // extract channel
     std::string chanName;
-    while (message[i] && message[i] != ' ')
+    while (i < message.size() && message[i] != ' ')
     {
         chanName += message[i];
         i++;
     }
 
-    while (message[i] == ' ') i++; // skip spaces
+    while (i < message.size() && message[i] == ' ') i++; // skip spaces
 
     // extract topic text (optional)
     std::string topicText;
-    if (message[i] == ':')
+    if (i < message.size() && message[i] == ':')
     {
         i++; // skip ':'
         topicText = message.substr(i); // everything after ':' is topic
     }
 
-    // Remove '#' from channel if present
+    // remove '#' if present
     if (!chanName.empty() && chanName[0] == '#')
         chanName = chanName.substr(1);
 
@@ -52,7 +52,7 @@ void topic(Client *client, std::string &message, Server *server)
 
     if (!channel)
     {
-        std::string reply = "403 :" + chanName + " :No such channel\r\n";
+        std::string reply = "403 " + chanName + " :No such channel\r\n";
         send(client->socket_fd, reply.c_str(), reply.length(), 0);
         return;
     }
@@ -85,8 +85,8 @@ void topic(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // if topic restricted, check admin
-    if (channel->is_topic_restricted && channel->admin_socket_fd != client->socket_fd)
+    // if topic restricted, check if client is an operator
+    if (channel->is_topic_restricted && !channel->isOperator(client->socket_fd))
     {
         std::string reply = "482 #" + channel->name + " :You're not channel operator\r\n";
         send(client->socket_fd, reply.c_str(), reply.length(), 0);
@@ -96,11 +96,14 @@ void topic(Client *client, std::string &message, Server *server)
     // set new topic
     channel->topic = topicText;
 
-    // broadcast
-    // std::string notify = ":" + client->nickname + " TOPIC #" + channel->name + " :" + topicText + "\r\n";
-    // for (size_t j = 0; j < channel->clients.size(); j++)
-    //     send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
+    // broadcast to all clients in channel
+    std::string notify = ":" + client->nickname + " TOPIC #" + channel->name + " :" + topicText + "\r\n";
+    for (size_t j = 0; j < channel->clients.size(); j++)
+    {
+        send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
+    }
 }
+
 
 
 void privmsg(Client *client, std::string &message, Server *server)
@@ -300,7 +303,7 @@ void mode(Client *client, std::string &message, Server *server)
     }
 
     // only operator can change modes
-    if (channel->admin_socket_fd != client->socket_fd)
+    if (!channel->isOperator(client->socket_fd))
     {
         std::string reply = "482 #" + channel->name + " :You're not channel operator\r\n";
         send(client->socket_fd, reply.c_str(), reply.length(), 0);
@@ -345,24 +348,18 @@ void mode(Client *client, std::string &message, Server *server)
                     for (size_t k = 0; k < channel->clients.size(); k++)
                     {
                         if (channel->clients[k]->nickname == modeArg)
-                        target = channel->clients[k];
+                        {
+                            target = channel->clients[k];
+                            break;
+                        }
                     }
+
                     if (target)
                     {
                         if (add)
-                         {
-                                 // if client is not already admin, assign second_admin_socket_fd
-                             if (channel->admin_socket_fd != target->socket_fd)
-                                channel->second_admin_socket_fd = target->socket_fd;
-                            }
-                    else
-                        {
-                            // remove +o
-                            if (channel->admin_socket_fd == target->socket_fd)
-                                  channel->admin_socket_fd = -1;
-                            else if (channel->second_admin_socket_fd == target->socket_fd)
-                                channel->second_admin_socket_fd = -1;
-                        }
+                            channel->addOperator(target->socket_fd);
+                        else
+                            channel->removeOperator(target->socket_fd); // creator never removed
                     }
                 }
                 break;
@@ -393,3 +390,4 @@ void mode(Client *client, std::string &message, Server *server)
     for (size_t j = 0; j < channel->clients.size(); j++)
         send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
 }
+
