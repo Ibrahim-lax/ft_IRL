@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/17 13:52:07 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/17 19:10:53 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,14 +96,14 @@ bool is_banned_channel(Client *client, std::string &channel_name)
 }
 
 
-bool    key_check(std::string &key, int socket_fd, Channel *channel)
+bool    key_check(Client *client, std::string &key, int socket_fd, Channel *channel)
 {
     std::string text;
     if (channel->is_password_required)
     {
         if (key != channel->password)
         {
-            text = "ERR_BADCHANNELKEY\r\n";
+            text = ":localhost 475 " + client->nickname + channel->name + " :Cannot join channel (+k)\r\n";
             send(socket_fd, text.c_str(), text.length(), 0);
             return false;
         }
@@ -144,7 +144,8 @@ bool invite_only(Channel *channel, Client *client)
     {
         if (!is_client_invited(channel, client))
         {
-            std::string text = "ERR_INVITEONLYCHAN\r\n";
+            std::string text;
+            text = ":localhost 473 " + client->nickname + " " + channel->name + " :Cannot join channel (+i)\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;  // **block the join**
         }
@@ -159,7 +160,7 @@ bool    channel_full(Channel *channel, Client *client)
     {
         if (channel->clients.size() >= channel->limit)
         {
-            text = "ERR_CHANNELISFULL\r\n";
+            text = ":localhost 471 " + client->nickname + " " + channel->name + " :Cannot join channel (+l)\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -177,7 +178,7 @@ bool    exist_channel(std::string &name, Client *client, std::string &key)
                 return true;
             if (channel_full(Server::channels[i], client))
                 return true;
-            if (!key_check(key, client->socket_fd, Server::channels[i]))
+            if (!key_check(client, key, client->socket_fd, Server::channels[i]))
                 return true;
             if (invite_only(Server::channels[i], client))
                 return true;
@@ -246,7 +247,7 @@ bool    is_valid_mask(std::string &channel, Client *client)
     std::string text;
     if (channel[0] == '#' && !is_illegal(channel.substr(1)))
         return true;
-    text = "ERR_BADCHANMASK\r\n";
+    text = ":localhost 476 " + client->nickname + " " + channel + " :Bad Channel Mask\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -258,24 +259,6 @@ void    join_channel(Client *client, std::string &channel_name, std::string &key
     if (exist_channel(channel_name, client, key))
         return ;
     Channel *channel = new Channel();
-    if (channel_name == "27")
-    {
-        channel->is_password_required = true;
-        channel->password = "277";
-        channel->is_limit_set = true;
-        channel->limit = 2;
-    }
-    if (channel_name == "42")
-    {
-        channel->is_password_required = true;
-        channel->password = "422";
-        channel->is_invite_only = true;
-    }
-    if (channel_name == "1337")
-    {
-        channel->is_password_required = true;
-        channel->password = "13377";
-    }
     channel->name = channel_name;
     channel->admin_socket_fd = client->socket_fd;
     client->channelsjoined.push_back(channel);
@@ -285,12 +268,12 @@ void    join_channel(Client *client, std::string &channel_name, std::string &key
     send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
-bool    max_channel_reached(Client *client)
+bool    max_channel_reached(Client *client, std::string &channelname)
 {
     std::string text;
     if (client->channelsjoined.size() >= MAX_CHANNELS)
     {
-        text = "ERR_TOOMANYCHANNELS\r\n";
+        text = ":localhost 405 " + client->nickname + " " + channelname + " :You have joined too many channels\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return true;
     }
@@ -312,19 +295,18 @@ void    join(Client *client, std::string &message)
     std::vector<std::string> array_channels;
     std::vector<std::string> array_keys;
     std::string key;
-    if (max_channel_reached(client))
-        return ;
+    
     parse_join_parameters(message, array_channels, array_keys);
     if (message == "")
     {
-        text = "ERR_NEEDMOREPARAMS\r\n";
+        text = ":localhost 461 " + client->nickname + " JOIN :Not enough parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     for (int i = 0; i < array_channels.size(); i++)
     {
-        if (max_channel_reached(client))
-            return ;
+        if (max_channel_reached(client, array_channels[i]))
+            continue;
         key = get_key(array_keys, i);
         if (is_valid_mask(array_channels[i], client))
             join_channel(client, array_channels[i], key);
@@ -818,9 +800,10 @@ void    quit(Client *client, std::string message, Server *server, int i)
     server->size_cl--;
 }
 
-void    unknown_cmd(Client *client)
+void    unknown_cmd(Client *client, std::string cmd)
 {
-    std::string text = "ERR_UNKNOWNCOMMAND\r\n";
+    std::string text;
+    text = ":localhost 421 " + client->nickname + " " + cmd + " :Unknown command\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
@@ -830,7 +813,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
 
     if (cmd == "PASS" || cmd == "USER")
     {
-        text = "ERR_ALREADYREGISTRED\r\n";
+        text = ":localhost 462 " + client->nickname + " :You may not reregister\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     if (cmd == "NICK")
@@ -849,11 +832,8 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
         privmsg(client, message, server);
     else if(cmd == "MODE")
         mode(client, message, server);
-
-    
-    // yosabir part ends
     else
-        unknown_cmd(client);
+        unknown_cmd(client, cmd);
 }
 
 std::string command(std::string &message)
@@ -871,16 +851,19 @@ std::string command(std::string &message)
     }
     else
     {
-        i = message.find("\n");
+        i = message.find_first_of("\r\n");
         if (i != std::string::npos)
             cmd = message.substr(0, i);
         else
             cmd = message;
         message = "";
     }
-    i = message.find("\n");
+    i = message.find("\r\n");
     if (i != std::string::npos)
         message = message.substr(0, i);
+    std::cout << "Command: " << cmd << std::endl;
+    std::cout << "Message: " << message << std::endl;
+    std::cout << "len of message: " << message.length() << std::endl;
     return cmd;
 }
 
@@ -889,59 +872,57 @@ void    unregister_cmnd(Client *client,std::string &cmd, std::string message, st
     std::string text;
     
     if (cmd == "PASS")
-        client->is_auth = password_check(client->socket_fd, message, password);
+        client->is_auth = password_check(client, message, password);
     else if (cmd == "NICK")
     {
         if (!client->is_auth)
-        {
-            text = "You need to Authenticate first\r\n";
-            send(client->socket_fd, text.c_str(), text.length(), 0);
             return ;
-        }
         nickname(client, message);
     }
     else if (cmd == "USER")
     {
          if (!client->is_auth)
-        {
-            text = "You need to Authenticate first\r\n";
-            send(client->socket_fd, text.c_str(), text.length(), 0);
             return;
-        }
         username(client, message);
     }
     else
     {
-        text = "Unknown command\r\n";
+        text = ":localhost 451 * :You have not registered\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     if (client->is_auth && client->is_nickname && client->is_username)
     {
         client->is_registered = true;
-        text = "Welcome to the ft_irc Network\r\n";
+        text = ":localhost 001 " + client->nickname + " Welcome to the IRC Network, " + client->nickname + "!" + client->username + "@localhost\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        text = ":localhost 002 " + client->nickname + " :Your host is localhost, running version 1.0\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        text = ":localhost 003 " + client->nickname + " :This server was created XX XX XX XX\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         std::cout << "CLIENT CONNECTED, ON FD: " << client->socket_fd << std::endl;
     }
 }
 
-bool    password_check(int socket_fd, std::string pw, std::string password)
+bool    password_check(Client *client, std::string pw, std::string password)
 {
     std::string text;
+    std::string NICK = (client->is_nickname) ? client->nickname : "*";
+    int socket_fd = client->socket_fd;
 
     if (pw == "")
     {
-        text = "ERR_NEEDMOREPARAMS\r\n";
+        text = ":localhost 461 " + NICK + " PASS :Not enough parameters\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
     }
-    if (password != pw)
+    else if (password != pw)
     {
-        text = "ERR_PASSWDMISMATCH\r\n";
+        text = ":localhost 464 " + NICK + " :Password incorrect\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
     }
     return (password == pw);
 }
 
-bool    is_new_nickname(std::string nick, int socket_fd)
+bool    is_new_nickname(std::string nick, int socket_fd, std::string NICK)
 {
     std::string text;
 
@@ -949,7 +930,7 @@ bool    is_new_nickname(std::string nick, int socket_fd)
     {
         if (Server::array_clients[i]->nickname == nick)
         {
-            text = "ERR_NICKNAMEINUSE\r\n";
+            text = ":localhost 433 " + NICK + " " + nick + " :Nickname is already in use\r\n";
             send(socket_fd, text.c_str(), text.length(), 0);
             return false;
         }
@@ -963,18 +944,19 @@ bool    is_new_nickname(std::string nick, int socket_fd)
 void    nickname(Client *client, std::string nick)
 {
     std::string text;
+    std::string NICK = (client->is_nickname) ? client->nickname : "*";
 
     if (nick == "")
     {
-        text = "ERR_NONICKNAMEGIVEN\r\n";
+        text = ":localhost 431 " + NICK + " :No nickname given\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     else if (is_illegal(nick))
     {
-        text = "ERR_ERRONEUSNICKNAME\r\n";
+        text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname\r\n";  
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
-    else if (is_new_nickname(nick, client->socket_fd))
+    else if (is_new_nickname(nick, client->socket_fd, NICK))
     {
         client->nickname = nick;
         client->is_nickname = true;
@@ -1051,6 +1033,8 @@ void show_clients()
         std::cout << "\tUsername: " << Server::array_clients[i]->username << std::endl;
         std::cout << "\tReal Name: " << Server::array_clients[i]->real_name << std::endl;
         std::cout << "\tIs Authenticated: " << (Server::array_clients[i]->is_auth ? "Yes" : "No") << std::endl;
+        std::cout << "\tIs Nickname Set: " << (Server::array_clients[i]->is_nickname ? "Yes" : "No") << std::endl;
+        std::cout << "\tIs Username Set: " << (Server::array_clients[i]->is_username ? "Yes" : "No") << std::endl;
         std::cout << "\tIs Registered: " << (Server::array_clients[i]->is_registered ? "Yes" : "No") << std::endl;
 
         std::cout << "----------------------------" << std::endl;
@@ -1130,47 +1114,35 @@ void split_to_four(std::string message, std::vector<std::string> &array_string)
     }
 }
 
-bool is_valid_user(std::vector<std::string> &array_string, Client *client)
+bool is_valid_user(std::vector<std::string> &array_string, Client *client, std::string NICK)
 {
+    std::string text;
+
     if (array_string.size() != 4)
     {
-        std::string text = "ERR_NEEDMOREPARAMS\r\n";
-        send(client->socket_fd, text.c_str(), text.length(), 0);   
-        return false;
-    }
-    if (array_string[3][0] != ':')
-    {
-        std::string text = "SYNTAX_ERROR\r\n";
+        text = ":localhost 461 " + NICK + " USER :Not enough parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return false;
     }
     return true;
 }
 
-std::string realname(std::string message)
-{
-    int b = 0;
-
-    b = message.find(':');
-    if (b != std::string::npos)
-        return message.substr(b + 1);
-    return message;
-}
-
 void    username(Client *client, std::string message)
 {
     std::vector<std::string> array_string;
+    std::string text;
+    std::string NICK = (client->is_nickname) ? client->nickname : "*";
     if (message == "")
     {
-        std::string text = "ERR_NEEDMOREPARAMS\r\n";
+        text = ":localhost 461 " + NICK + " USER :Not enough parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     split_to_four(message, array_string);
-    if (is_valid_user(array_string, client))
+    if (is_valid_user(array_string, client, NICK))
     {
         client->username = array_string[0];
-        client->real_name = realname(array_string[3]);
+        client->real_name = array_string[3];
         client->is_username = true;
     }
 }
@@ -1368,9 +1340,13 @@ void Server::run()
                     {
                         curr = str.substr(0, pos);
                         execute(array_clients.at(i - 1), curr, i);
-                        str.erase(0, pos + 1);
+                        if (pos + 1 < (int)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
+                            str = str.substr(pos + 2);
+                        else
+                            str = str.substr(pos + 1);
                     }
                     show_clients();
+                    std::cout << "/*/*/*/**/*"<< std::endl;
                 }
                 else if (bytes_readen == 0)
                 {

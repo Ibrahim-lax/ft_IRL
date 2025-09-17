@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/17 13:49:23 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/17 14:47:42 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,7 @@ class Server
         void execute(Client *client, std::string &message, int i);
 };
 
-bool    password_check(int socket_fd, std::string message, std::string password);
+bool    password_check(Client *client, std::string message, std::string password);
 void    nickname(Client *client, std::string message);
 void    username(Client *client, std::string message);
 void    delete_client(int i);
