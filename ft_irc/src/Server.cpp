@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/17 19:10:53 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/18 13:05:52 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -836,34 +836,32 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
         unknown_cmd(client, cmd);
 }
 
-std::string command(std::string &message)
+std::string command(std::string &message, size_t *index)
 {
-    size_t i = 0;
+    size_t j = 0;
     std::string cmd;
 
-    i = skip_spaces(message, i);
-    message = message.substr(i);
-    i = message.find(" ");
-    if (i != std::string::npos)
+    *index = skip_spaces(message, *index);
+    message = message.substr(*index);
+    j = message.find(" ");
+    if (j != std::string::npos)
     {
-        cmd = message.substr(0, i);
-        message = message.substr(i + 1);
+        cmd = message.substr(0, j);
+        message = message.substr(j + 1);
     }
     else
     {
-        i = message.find_first_of("\r\n");
-        if (i != std::string::npos)
-            cmd = message.substr(0, i);
+        j = message.find_first_of("\r\n");
+        
+        if (j != std::string::npos)
+            cmd = message.substr(0, j);
         else
             cmd = message;
         message = "";
     }
-    i = message.find("\r\n");
-    if (i != std::string::npos)
-        message = message.substr(0, i);
-    std::cout << "Command: " << cmd << std::endl;
-    std::cout << "Message: " << message << std::endl;
-    std::cout << "len of message: " << message.length() << std::endl;
+    j = message.find("\r\n");
+    if (j != std::string::npos)
+        message = message.substr(0, j);
     return cmd;
 }
 
@@ -1284,7 +1282,10 @@ void    delete_client(int i)
 
 void    Server::execute(Client *client, std::string &message, int i)
 {
-    std::string cmd = command(message);
+    size_t  index = 0;
+    std::string cmd = command(message, &index);
+    if (cmd == "" && index == 0)
+        return ;
     if (!client->is_registered)
         unregister_cmnd(client, cmd, message, this->pw);
     else
