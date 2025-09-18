@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/09/17 10:27:28 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/18 20:54:47 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,35 @@ public:
     void removeOperator(int socket_fd)
     {
         if (socket_fd == admin_socket_fd) return;
+        for (size_t i = 0; i < operators.size(); i++)
+        {
+            if (operators[i] == socket_fd)
+            {
+                operators.erase(operators.begin() + i);
+                break;
+            }
+        }
+    }
+
+    int next_operator(int socket_fd) // med version
+    {
+        for (size_t i = 0; i < operators.size(); i++)
+        {
+            if (operators[i] == socket_fd)
+            {
+                if (i + 1 < operators.size())
+                    return operators[i + 1];
+                else if (i - 1 >= 0)
+                    return operators[i - 1];
+            }
+        }
+        return -1;
+    }
+
+     void removeOperatorVV(int socket_fd) // med version
+    {
+        if (socket_fd == admin_socket_fd)
+            admin_socket_fd = next_operator(admin_socket_fd);
         for (size_t i = 0; i < operators.size(); i++)
         {
             if (operators[i] == socket_fd)
