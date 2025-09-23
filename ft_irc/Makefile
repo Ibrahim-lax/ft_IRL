@@ -3,13 +3,11 @@ CMD		=	c++
 FLAGS	=	-Wall -Werror -Wextra -std=c++98
 
 SRCS	=	src/Channel.cpp \
-			src/Client.cpp \
 			src/Server.cpp \
 			src/main.cpp
 
 
 OFILES	=	src/Channel.o \
-			src/Client.o \
 			src/Server.o \
 			src/main.o
 

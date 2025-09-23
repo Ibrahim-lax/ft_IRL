@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/09/18 20:54:47 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/23 16:43:50 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,12 +32,11 @@ public:
     bool is_limit_set;
     bool is_topic_restricted; // +t mode
 
-    Channel() : admin_socket_fd(-1), is_invite_only(false), is_password_required(false),
-                password(""), is_limit_set(false), is_topic_restricted(false) {}
+    Channel() : admin_socket_fd(-1), password(""), is_invite_only(false), is_password_required(false), is_limit_set(false), is_topic_restricted(false) {}
 
     Channel(std::string channel_name, int admin_fd)
-        : name(channel_name), admin_socket_fd(admin_fd), is_invite_only(false),
-          is_password_required(false), password(""), is_limit_set(false), is_topic_restricted(false)
+        : name(channel_name), admin_socket_fd(admin_fd),
+          password(""), is_invite_only(false), is_password_required(false),  is_limit_set(false), is_topic_restricted(false)
     {
         operators.push_back(admin_fd); // creator is automatically an operator
     }

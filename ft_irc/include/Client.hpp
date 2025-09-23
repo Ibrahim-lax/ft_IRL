@@ -6,7 +6,7 @@
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/01 20:24:28 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/23 16:44:27 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ class Client
             is_nickname = false;
             is_username = false;
         }
-        Client(int fd) : socket_fd(fd), is_auth(false), is_registered(false)
+        Client(int fd) :  is_auth(false), is_registered(false), socket_fd(fd)
         , is_nickname(false), is_username(false)
         {
             // std::cout << "Client created with fd: " << fd << std::endl;
