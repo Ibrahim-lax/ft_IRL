@@ -40,10 +40,11 @@ class Server
         int server_fd;                         //  listening socket
         std::string port;               // Port 
         std::string pw;               // password
+        long server_start_time;
     public:
         int size_cl;
         std::vector<struct pollfd> poll_fds;   // vect of poll structs for cleints + server too
-        Server(std::string port, std::string passw){this->port = port; this->pw = passw; this->size_cl = 0;};
+        Server(std::string port, std::string passw);
         ~Server() {};
         void setup();                          // Bind, listen, etc.
         void run();                            // Main poll loop
@@ -54,6 +55,7 @@ class Server
         static std::vector<Client*> array_clients;
         
         void execute(Client *client, std::string &message, int i);
+        std::string  handlebotCommand(std::string cmd);
 };
 
 bool    password_check(Client *client, std::string message, std::string password);

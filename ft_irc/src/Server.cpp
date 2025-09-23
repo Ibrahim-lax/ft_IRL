@@ -16,6 +16,13 @@ std::vector<Channel*> Server::channels;
 std::vector<Client*> Server::array_clients;
 
 
+Server::Server(std::string port, std::string passw)
+{
+    this->port = port;
+    this->pw = passw;
+    this->size_cl = 0;
+    this->server_start_time = time(0);
+}
 size_t skip_spaces(std::string message, size_t i);
 
 void    register_cl(std::vector<struct pollfd> *poll_fds, int cl_fd)
@@ -1042,8 +1049,6 @@ bool    is_new_nickname(std::string nick, int socket_fd, std::string NICK)
 }
 
 
-
-
 void    nickname(Client *client, std::string nick)
 {
     std::string text;
@@ -1087,45 +1092,6 @@ void    show_channels()
     }
 }
 
-// void    show_clients()
-// {
-//     for (int i = 0; i < Server::array_clients.size(); i++)
-//     {
-//         std::cout << "Client " << i + 1 << ": " << std::endl;
-//         std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
-//         std::cout << "\t" << "Nickname: " << Server::array_clients[i]->nickname << std::endl;
-//         std::cout << "\t" << "Username: " << Server::array_clients[i]->username << std::endl;
-//         std::cout << "\t" << "Real Name: " << Server::array_clients[i]->real_name << std::endl;
-//         std::cout << "\t" << "Is Authenticated: " << (Server::array_clients[i]->is_auth ? "Yes" : "No") << std::endl;
-//         std::cout << "\t" << "Is Registered: " << (Server::array_clients[i]->is_registered ? "Yes" : "No") << std::endl;
-//         std::cout << "----------------------------" << std::endl;
-//         std::cout << "\t" << "Channels Joined: ";
-//         if (Server::array_clients[i]->channelsjoined.empty())
-//             std::cout << "None" << std::endl;
-//         else
-//         {
-//             for (size_t j = 0; j < Server::array_clients[i]->channelsjoined.size(); j++)
-//             {
-//                 std::cout << Server::array_clients[i]->channelsjoined[j]->name << " ";
-//             }
-//             std::cout << std::endl;
-//         }
-//         std::cout << "-----------------------------" << std::endl;
-//         std::cout << "\t" << "Banned Channels: ";
-//         if (Server::array_clients[i]->banned_channels.empty())
-//             std::cout << "None" << std::endl;
-//         else
-//         {
-//             for (size_t j = 0; j < Server::array_clients[i]->banned_channels.size(); j++)
-//             {
-//                 std::cout << Server::array_clients[i]->banned_channels[j]->name << " ";
-//             }
-//             std::cout << std::endl;
-//         }
-//         std::cout << "-----------------------------" << std::endl;
-//     }
-//     show_channels();
-// }
 void show_clients()
 {
     for (int i = 0; i < (int)Server::array_clients.size(); i++)
@@ -1417,11 +1383,10 @@ void Server::run()
         }
         if (this->poll_fds.at(0).revents & POLLIN)
         {
-            std::cout << "server pollfd trigered"<<std::endl;
             client_fd = accept(this->get_serv_fd(), (struct sockaddr *)&cl_adr, &cl_len);
             if (client_fd < 0)
             {
-                std::cerr << "ERROR\n" << std::endl;
+                std::cerr << "Error while accepting new client\n" << std::endl;
                 continue ;
             }
             size_cl++;
@@ -1445,6 +1410,11 @@ void Server::run()
                     while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
                         curr = str.substr(0, pos);
+                        if (!curr.empty() && curr[0] == '!')
+                        {
+                            std::string bot_response = handlebotCommand(curr);
+                            send(this->poll_fds.at(i).fd, bot_response.c_str(), bot_response.length(), 0);
+                        }
                         execute(array_clients.at(i - 1), curr, i);
                         if (pos + 1 < (unsigned long)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
                             str = str.substr(pos + 2);
@@ -1467,4 +1437,33 @@ void Server::run()
             }
         }
     }
-}                        
+}
+
+
+std::string Server::handlebotCommand(std::string  cmd)
+{
+    std::vector<std::string> jokes;
+    jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
+    jokes.push_back("Why did the function return early? It had too many arguments!");
+    jokes.push_back("I would tell you a UDP joke, but you might not get it.");
+    jokes.push_back("if your code works, dont touch it");
+
+    if (cmd == "!uptime")
+    {
+        time_t now = time(0);
+        long uptime_sec = now - this->server_start_time;
+        return "Bot: Server uptime is " + std::to_string(uptime_sec) + " seconds\r\n";
+    } 
+    else if (cmd == "!joke") {
+        int idx = rand() % jokes.size();
+        return "Bot: " + jokes[idx] + "\r\n";
+    } 
+    else if (cmd == "!help") {
+        return "Bot: Available commands:\n"
+               "!uptime - shows server uptime in seconds\n"
+               "!joke - tells a random joke\n"
+               "!help - shows this help message\r\n";
+    }
+
+    return "Bot: Unknown command. Try !help\r\n";
+}
