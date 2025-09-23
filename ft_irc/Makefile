@@ -1,13 +1,46 @@
-all : S
+NAME	=	Irc_server
+CMD		=	c++
+FLAGS	=	-Wall -Werror -Wextra -std=c++98
 
-C:
-	c++ src/Channel.cpp -o C
+SRCS	=	src/Channel.cpp \
+			src/Client.cpp \
+			src/Server.cpp \
+			src/main.cpp
 
 
-S:
-	c++ src/Server.cpp src/main.cpp src/Channel.cpp -o S
+OFILES	=	src/Channel.o \
+			src/Client.o \
+			src/Server.o \
+			src/main.o
 
-clean :
-	rm S 
 
-re : clean all
+
+H		=	include/Channel.hpp \
+			include/Client.hpp \
+			include/Server.hpp
+
+
+
+
+all : $(NAME)
+
+
+$(NAME): $(OFILES) 
+	$(CMD) $(OFILES) -o $(NAME)
+
+
+%.o : %.cpp $(H)
+	$(CMD) $(FLAGS) -c $< -o $@
+
+
+clean:
+	rm -rf $(OFILES)
+
+
+fclean: clean
+	rm -rf $(NAME)
+
+re: fclean all
+
+
+.PHONY: all clean fclean re
