@@ -158,7 +158,7 @@ bool    channel_full(Channel *channel, Client *client)
     std::string text;
     if (channel->is_limit_set)
     {
-        if (channel->clients.size() >= channel->limit)
+        if (channel->clients.size() >= (unsigned int) channel->limit)
         {
             text = ":localhost 471 " + client->nickname + " " + channel->name + " :Cannot join channel (+l)\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -341,7 +341,7 @@ bool    max_channel_reached(Client *client, std::string &channelname)
     return false;
 }
 
-std::string get_key(std::vector<std::string> &array_keys, int i)
+std::string get_key(std::vector<std::string> &array_keys, unsigned int i)
 {
     
     std::cout << "size of k" << std::endl;
@@ -364,7 +364,7 @@ void    join(Client *client, std::string &message)
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    for (int i = 0; i < array_channels.size(); i++)
+    for (int i = 0; (unsigned long)i < array_channels.size(); i++)
     {
         if (max_channel_reached(client, array_channels[i]))
             continue;
@@ -402,7 +402,7 @@ bool valid_channel(std::string &channel_name, Client *client, int *i)
     if (!is_valid_mask(channel_name, client))
         return false;
     channel_name = channel_name.substr(1);
-    for (int j = 0; j < Server::channels.size(); j++)
+    for (unsigned int j = 0; j < Server::channels.size(); j++)
     {
         if (Server::channels[j]->name == channel_name)
         {
@@ -689,7 +689,7 @@ bool    already_seted(Channel *channel, Client *client)
 
 void    show_array_clients()
 {
-    for (int i = 0; i < Server::array_clients.size(); i++)
+    for (unsigned long i = 0; i < Server::array_clients.size(); i++)
     {
         std::cout << "Client " << i + 1 << ": " << Server::array_clients[i]->nickname << std::endl;
         for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
@@ -701,10 +701,10 @@ void    show_array_clients()
 
 void    show_array_channels()
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (unsigned long i = 0; i < Server::channels.size(); i++)
     {
         std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
-        for (int j = 0; j < Server::channels[i]->clients.size(); j++)
+        for (unsigned long j = 0; j < Server::channels[i]->clients.size(); j++)
         {
             std::cout << "\t" << "Client: " << Server::channels[i]->clients[j]->nickname << std::endl;
             for (size_t k = 0; k < Server::channels[i]->clients[j]->invited_channels.size(); k++)
@@ -737,7 +737,7 @@ bool    is_invited_joined(Channel *channel, Client *client)
 
 void    un_banned_channel(Client *client, Channel *channel)
 {
-    for (int i = 0; i< client->banned_channels.size(); i++)
+    for (unsigned long i = 0; i< client->banned_channels.size(); i++)
     {
         if (client->banned_channels[i]->name == channel->name)
         {
@@ -913,6 +913,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
 {
     std::string text;
 
+    (void)password;
     if (cmd == "PASS" || cmd == "USER")
     {
         text = ":localhost 462 " + client->nickname + " :You may not reregister\r\n";
@@ -1028,7 +1029,7 @@ bool    is_new_nickname(std::string nick, int socket_fd, std::string NICK)
 {
     std::string text;
 
-    for (int i = 0; i < Server::array_clients.size(); i++)
+    for (unsigned long i = 0; i < Server::array_clients.size(); i++)
     {
         if (Server::array_clients[i]->nickname == nick)
         {
@@ -1067,7 +1068,7 @@ void    nickname(Client *client, std::string nick)
 
 void    show_channels()
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (unsigned long i = 0; i < Server::channels.size(); i++)
     {
         std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
         std::cout << "\t" << "Admin Socket FD: " << Server::channels[i]->admin_socket_fd << std::endl;
@@ -1292,7 +1293,7 @@ void    erase_channel_from_invited_channels(Channel *channel)
 
 void    remove_channel(Channel *channel)
 {
-    for (int i = 0; i < Server::channels.size(); i++)
+    for (unsigned long i = 0; i < Server::channels.size(); i++)
     {
         if (Server::channels[i]->name == channel->name)
         {
@@ -1333,7 +1334,7 @@ void    reclame_channel(Channel *channel, Client *client)
 
 void    handle_channels(int i)
 {
-    for (int j = 0; j < Server::array_clients[i - 1]->channelsjoined.size(); j++)
+    for (unsigned long j = 0; j < Server::array_clients[i - 1]->channelsjoined.size(); j++)
     {
         std::cout << "Handling channel: " << Server::array_clients[i - 1]->channelsjoined[j]->name << std::endl;
         Channel *channel = Server::array_clients[i - 1]->channelsjoined[j];
@@ -1440,12 +1441,12 @@ void Server::run()
                     buf[bytes_readen] = '\0';
                     std::string str(buf);
                     std::string curr;
-                    int pos = 0;
-                    while ((pos = str.find_first_of("\r\n")) != std::string::npos)
+                    unsigned long pos = 0;
+                    while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
                         curr = str.substr(0, pos);
                         execute(array_clients.at(i - 1), curr, i);
-                        if (pos + 1 < (int)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
+                        if (pos + 1 < (unsigned long)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
                             str = str.substr(pos + 2);
                         else
                             str = str.substr(pos + 1);
