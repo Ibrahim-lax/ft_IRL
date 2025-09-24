@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/24 14:13:04 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/24 17:17:50 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -684,7 +684,7 @@ bool    channel_not_found(std::string &name_channel, Channel *&channel)
     return true;
 }
 
-bool    already_seted(Channel *channel, Client *client)
+bool    already_invited(Channel *channel, Client *client)
 {
     for (size_t i = 0; i < client->invited_channels.size(); i++)
     {
@@ -784,7 +784,7 @@ void    parse_invite_parameters(std::string &message, std::string &nick_to_invit
     }
 }
 
-bool    is_channel_exist(std::string &name_channel, int *I_CH)
+bool    is_channel_exist(std::string &name_channel, int *I_CH, Client *client)
 {
     name_channel = name_channel.substr(1);
     for (size_t i = 0; i < Server::channels.size(); i++)
@@ -795,6 +795,9 @@ bool    is_channel_exist(std::string &name_channel, int *I_CH)
             return true;
         }
     }
+    std::string text;
+    text = ":localhost 403 " + client->nickname + " " + name_channel + " :No such channel\r\n";
+    send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
 
@@ -802,9 +805,10 @@ bool    require_admin(Client *client, int I_CH)
 {
     if (Server::channels[I_CH]->is_invite_only)
     {
-        if (Server::channels[I_CH]->admin_socket_fd != client->socket_fd)
+        if (!Server::channels[I_CH]->isOperator(client->socket_fd))
         {
-            std::string text = "ERR_CHANOPRIVSNEEDED\r\n";
+            std::string text;
+            text = ":localhoszt 482 " + client->nickname + " " + Server::channels[I_CH]->name + " :You're not channel operator\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -818,7 +822,8 @@ bool    is_already_joined(Client *client, std::string &nick_to_invite, int I_CH)
     {
         if (Server::channels[I_CH]->clients[i]->nickname == nick_to_invite)
         {
-            std::string text = "ERR_USERONCHANNEL\r\n";
+            std::string text;
+            text = ":localhost 443 " + client->nickname + " " + nick_to_invite + " " + Server::channels[I_CH]->name + " :is already on channel\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -831,7 +836,6 @@ void invite(Client *client, std::string &message)
     std::string text;
     std::string nick_to_invite;
     std::string name_channel;
-    bool        check_channel = false;
     int         I_CH = -1;
     int         I_NK = -1;
 
@@ -840,45 +844,34 @@ void invite(Client *client, std::string &message)
     if (message == "")
     {
         text = "ERR_NEEDMOREPARAMS\r\n";
+        text = ":localhost 461 " + client->nickname + " INVITE :Not enough parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     if (!is_valid_mask(name_channel, client))
         return ;
 
-    check_channel = is_channel_exist(name_channel, &I_CH);
+    if (!is_channel_exist(name_channel, &I_CH, client))
+        return ;
+        
     if (!is_nick_exist(nick_to_invite, client, &I_NK))
         return ;
+    if (!is_client_joined(client, I_CH))
+        return ;
+    if (require_admin(client, I_CH))
+        return ;
+    if (is_already_joined(client, nick_to_invite, I_CH))
+        return ;
 
-    if (check_channel)
-    {
-        if (!is_client_joined(client, I_CH))
-            return ;
-        if (require_admin(client, I_CH))
-            return ;
-        if (is_already_joined(client, nick_to_invite, I_CH))
-            return ;
+    Client *target = Server::array_clients[I_NK];
+    Channel *channel = Server::channels[I_CH];
 
-        // --- FIX: push the channel into the *target* client's invited list ---
-        Client *target = Server::array_clients[I_NK];
-        Channel *channel = Server::channels[I_CH];
+    if (!already_invited(channel, target))
+        target->invited_channels.push_back(channel);
 
-        if (!already_seted(channel, target))
-            target->invited_channels.push_back(channel);
-    }
-
-    std::string channel_display;
-    if (check_channel && I_CH >= 0)
-        channel_display = "#" + Server::channels[I_CH]->name;
-    else
-        channel_display = "#" + name_channel;
-
-    // Notify inviter (and invitee)
-    text = ":" + client->nickname + " INVITE " + nick_to_invite + " " + channel_display + "\r\n";
+    text = ": 341 " + client->nickname + " " + nick_to_invite + " #" + channel->name + "\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
-
-    // Send a user-visible invite notice to the invitee (your original code used this form)
-    text = "You have invited " + nick_to_invite + " to the channel: " + channel_display + "\r\n";
+    text = ": localhost INVITE " + nick_to_invite + " #" + channel->name + "\r\n";
     send(Server::array_clients[I_NK]->socket_fd, text.c_str(), text.length(), 0);
 }
 
