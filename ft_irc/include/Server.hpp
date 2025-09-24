@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/17 14:47:42 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/24 14:01:06 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ class Server
         static std::vector<Client*> array_clients;
         
         void execute(Client *client, std::string &message, int i);
-        std::string  handlebotCommand(std::string cmd);
+        std::string  handlebotCommand(std::string &cmd);
 };
 
 bool    password_check(Client *client, std::string message, std::string password);

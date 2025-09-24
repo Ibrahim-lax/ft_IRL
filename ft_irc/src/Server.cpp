@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/18 22:01:21 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/24 14:13:04 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -916,6 +916,13 @@ void    unknown_cmd(Client *client, std::string cmd)
     send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
+
+void    bot_cmd(Client *client, std::string &cmd, Server *server)
+{
+    std::string bot_response = ":localhost 001 A " + server->handlebotCommand(cmd);
+    send(client->socket_fd, bot_response.c_str(), bot_response.length(), 0);
+}
+
 void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i)
 {
     std::string text;
@@ -943,6 +950,8 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
         privmsg(client, message, server);
     else if(cmd == "MODE")
         mode(client, message, server);
+    else if (cmd[0] == '!')
+        bot_cmd(client, cmd, server);
     else
         unknown_cmd(client, cmd);
 }
@@ -1366,8 +1375,8 @@ void    Server::execute(Client *client, std::string &message, int i)
 void Server::run()
 {
     int client_fd;
-    char buf[512];
-    memset(buf, 0, 512);
+    char buf[513];
+    memset(buf, 0, 513);
     size_cl = 0;
     struct sockaddr_in cl_adr;
     size_t bytes_readen;
@@ -1399,22 +1408,16 @@ void Server::run()
         {
             if (this->poll_fds.at(i).revents & POLLIN)
             {
-                memset(buf, 0, 512);
+                memset(buf, 0, 513);
                 bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
                 if (bytes_readen > 0)
                 {
-                    buf[bytes_readen] = '\0';
                     std::string str(buf);
                     std::string curr;
                     unsigned long pos = 0;
                     while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
                         curr = str.substr(0, pos);
-                        if (!curr.empty() && curr[0] == '!')
-                        {
-                            std::string bot_response = handlebotCommand(curr);
-                            send(this->poll_fds.at(i).fd, bot_response.c_str(), bot_response.length(), 0);
-                        }
                         execute(array_clients.at(i - 1), curr, i);
                         if (pos + 1 < (unsigned long)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
                             str = str.substr(pos + 2);
@@ -1440,7 +1443,7 @@ void Server::run()
 }
 
 
-std::string Server::handlebotCommand(std::string  cmd)
+std::string Server::handlebotCommand(std::string &cmd)
 {
     std::vector<std::string> jokes;
     jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
@@ -1448,21 +1451,22 @@ std::string Server::handlebotCommand(std::string  cmd)
     jokes.push_back("I would tell you a UDP joke, but you might not get it.");
     jokes.push_back("if your code works, dont touch it");
 
-    if (cmd == "!uptime")
+
+    if (cmd == "!UPTIME" || cmd == "!uptime")
     {
         time_t now = time(0);
         long uptime_sec = now - this->server_start_time;
         return "Bot: Server uptime is " + std::to_string(uptime_sec) + " seconds\r\n";
     } 
-    else if (cmd == "!joke") {
+    else if (cmd == "!JOKE" || cmd == "!joke"){
         int idx = rand() % jokes.size();
         return "Bot: " + jokes[idx] + "\r\n";
     } 
-    else if (cmd == "!help") {
+    else if (cmd == "!help" || cmd == "!HELP") {
         return "Bot: Available commands:\n"
-               "!uptime - shows server uptime in seconds\n"
-               "!joke - tells a random joke\n"
-               "!help - shows this help message\r\n";
+               ":localhost 001 A !uptime - shows server uptime in seconds\n"
+               ":localhost 001 A  !joke - tells a random joke\n"
+               ":localhost 001 A  !help - shows this help message\r\n";
     }
 
     return "Bot: Unknown command. Try !help\r\n";
