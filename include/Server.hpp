@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/25 17:04:43 by librahim         ###   ########.fr       */
+/*   Updated: 2025/09/25 22:44:40 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ class Server
         long server_start_time;
     public:
         int size_cl;
+        int socket_bot;
         std::vector<struct pollfd> poll_fds;  
         Server(std::string port, std::string passw);
         ~Server() {};

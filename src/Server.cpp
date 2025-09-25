@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/25 13:58:06 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/25 22:54:56 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -911,8 +911,12 @@ void    unknown_cmd(Client *client, std::string cmd)
 
 void    bot_cmd(Client *client, std::string &cmd, Server *server)
 {
-    std::string bot_response = ":localhost 001 A " + server->handlebotCommand(cmd);
-    send(client->socket_fd, bot_response.c_str(), bot_response.length(), 0);
+    // std::string bot_response = ":localhost 001 A " + server->handlebotCommand(cmd);
+    std::string bot_request = client->nickname + "::" + cmd;
+    int bot_fd = server->socket_bot;
+    if (bot_fd < 0)
+        return ;
+    send(bot_fd, bot_request.c_str(), bot_request.length(), 0);
 }
 
 void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i)
@@ -1070,6 +1074,8 @@ void    nickname(Client *client, std::string nick)
         client->nickname = nick;
         client->is_nickname = true;
     }
+    if (client->nickname == "[BOT]")
+        Server::socket_bot = client->socket_fd; 
 }
 
 void    show_channels()
@@ -1366,6 +1372,7 @@ void Server::run()
     char buf[513];
     memset(buf, 0, 513);
     size_cl = 0;
+    socket_bot = -1;
     struct sockaddr_in cl_adr;
     size_t bytes_readen;
     socklen_t cl_len = sizeof(cl_adr);
@@ -1402,6 +1409,7 @@ void Server::run()
                 {
                     std::string str(buf);
                     std::string curr;
+                    std::cout <<"MESSAGE DISPLAY FOR DEBUGGING GGGGG :" << str << std::endl;
                     unsigned long pos = 0;
                     while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
@@ -1413,7 +1421,7 @@ void Server::run()
                             str = str.substr(pos + 1);
                     }
                     show_clients();
-                    std::cout << "/*/*/*/**/*"<< std::endl;
+                    // std::cout << "/*/*/*/**/*"<< std::endl;
                 }
                 else if (bytes_readen == 0)
                 {
