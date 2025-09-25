@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/24 14:01:06 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/25 17:04:43 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,19 +37,19 @@ class Channel;
 class Server
 {
     private:
-        int server_fd;                         //  listening socket
-        std::string port;               // Port 
-        std::string pw;               // password
+        int server_fd;   
+        std::string port;        
+        std::string pw;          
         long server_start_time;
     public:
         int size_cl;
-        std::vector<struct pollfd> poll_fds;   // vect of poll structs for cleints + server too
+        std::vector<struct pollfd> poll_fds;  
         Server(std::string port, std::string passw);
         ~Server() {};
-        void setup();                          // Bind, listen, etc.
-        void run();                            // Main poll loop
+        void setup(); 
+        void run(); 
         int get_serv_fd(){return server_fd;}
-        std::string get_serv_pw(){return pw;}
+        std::string get_serv_pw() {return pw;}
         void closeClient() {};
         static std::vector<Channel*> channels;
         static std::vector<Client*> array_clients;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/23 16:44:27 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/09/25 17:04:55 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,6 @@ class Client
         std::vector<Channel*> invited_channels;
         
         Client() {
-            // std::cout << "Client created" << std::endl;
             is_auth = false;
             is_registered = false;
             is_nickname = false;
@@ -42,7 +41,6 @@ class Client
         Client(int fd) :  is_auth(false), is_registered(false), socket_fd(fd)
         , is_nickname(false), is_username(false)
         {
-            // std::cout << "Client created with fd: " << fd << std::endl;
         }
 };
 
