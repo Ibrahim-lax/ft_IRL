@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/24 17:17:50 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/09/25 13:58:06 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -839,7 +839,6 @@ void invite(Client *client, std::string &message)
     int         I_CH = -1;
     int         I_NK = -1;
 
-    // parse "<nick> <#channel>"
     parse_invite_parameters(message, nick_to_invite, name_channel);
     if (message == "")
     {
@@ -871,7 +870,7 @@ void invite(Client *client, std::string &message)
 
     text = ": 341 " + client->nickname + " " + nick_to_invite + " #" + channel->name + "\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
-    text = ": localhost INVITE " + nick_to_invite + " #" + channel->name + "\r\n";
+    text = ":localhost INVITE " + nick_to_invite + " #" + channel->name + "\r\n";
     send(Server::array_clients[I_NK]->socket_fd, text.c_str(), text.length(), 0);
 }
 
@@ -1315,26 +1314,22 @@ void    handle_channels(int i)
             Server::array_clients[i - 1]->banned_channels.clear();//useless
             return ;
         }
-        else if (channel_has_multiple_clients_not_admin(channel, Server::array_clients[i -1]))
-        {
-            std::cout << "channel has multiple clients, not admin" << std::endl;
-            reclame_channel(channel, Server::array_clients[i - 1]);
+        reclame_channel(channel, Server::array_clients[i - 1]);
             channel->clients.erase(
                 std::remove(channel->clients.begin(), channel->clients.end(), Server::array_clients[i - 1]),
                 channel->clients.end());
-        }
-        else if (channel_has_multiple_clients_admin(channel, Server::array_clients[i - 1]))
+        if (channel->isOperator(Server::array_clients[i - 1]->socket_fd))
         {
-            std::cout << "channel has multiple clients, admin" << std::endl;
-            reclame_channel(channel, Server::array_clients[i - 1]);
-            channel->clients.erase(
-                std::remove(channel->clients.begin(), channel->clients.end(), Server::array_clients[i - 1]),
-                channel->clients.end());
-            std::cout << "Old admin socket fd: " << channel->admin_socket_fd << std::endl;
-            channel->admin_socket_fd = channel->clients[0]->socket_fd;
-            std::string text = "New admin of the channel: " + channel->name + " is " + channel->clients[0]->nickname + "\r\n";
-            send(channel->admin_socket_fd, text.c_str(), text.length(), 0);
-            std::cout << "New admin socket fd: " << channel->admin_socket_fd << std::endl;
+            if (channel->operators.size() > 1)
+                channel->removeOperatorVV(Server::array_clients[i - 1]->socket_fd);
+            else if (channel->operators.size() == 1)
+            {
+                channel->removeOperatorVV(Server::array_clients[i - 1]->socket_fd);
+                channel->admin_socket_fd = channel->clients[0]->socket_fd;
+                std::string text = ":localhost MODE #" + channel->name + " +o " + channel->clients[0]->nickname + "\r\n";
+                inform_all_clients(j, text);
+                channel->addOperator(channel->clients[0]->socket_fd);
+            }
         }
     }
     Server::array_clients[i - 1]->channelsjoined.clear();
