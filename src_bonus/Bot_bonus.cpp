@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <string>
+#include <vector>
 #include <iostream>
 #include "../include_bonus/bot_bonus.hpp"
 
@@ -37,16 +38,6 @@ int Bot::setup()
         std::cerr << "socket error"<<std::endl;
         return (1);
     }
-    // struct timeval tv;
-    // tv.tv_sec = 0;
-    // tv.tv_usec = 300000;
-    // if (setsockopt(this->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0)
-    // {
-    //     freeaddrinfo(res);
-    //     close(this->fd);
-    //     std::cerr << "setsockopt() error"<<std::endl;
-    //     return 1;
-    // }
     if (connect(this->fd, res->ai_addr, res->ai_addrlen))
     {
         close(this->fd);
@@ -55,6 +46,7 @@ int Bot::setup()
         return 1;
     }
     freeaddrinfo(res);
+    this->bot_start_time = time(0);
     return 0;
 }
 #include <sstream>
@@ -75,7 +67,7 @@ int auth(std::string pw,int fd)
     if (n > 0)
     {
         std::string msg_pw(rec, n);
-        if (msg_pw.size() && msg_pw.find(" 464 ") != std::string::npos)
+        if (msg_pw.size() && msg_pw.find("464") != std::string::npos)
         {
             std::cerr << "Password typed is incorrect, closing connection" <<std::endl;
             return 1;
@@ -116,22 +108,50 @@ int auth(std::string pw,int fd)
     return 0;
 }
 
+std::string handlebotCommand(std::string &cmd, long t)
+{
+    std::vector<std::string> jokes;
+    jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
+    jokes.push_back("Why did the function return early? It had too many arguments!");
+    jokes.push_back("I would tell you a UDP joke, but you might not get it.");
+    jokes.push_back("if your code works, dont touch it");
+
+
+    if (!cmd.find("!uptime") || !cmd.find("!UPTIME"))
+    {
+        time_t now = time(0);
+        long uptime_sec = now - t;
+        return "Bot: Bot started " + std::to_string(uptime_sec) + " seconds ago";
+    } 
+    else if (!cmd.find("!JOKE") || !cmd.find("!joke"))
+    {
+        int idx = rand() % jokes.size();
+        return "Bot: " + jokes[idx];
+    } 
+    else if (!cmd.find("!HELP") || !cmd.find("!help"))
+    {
+        return "Bot: Available commands:\n     !uptime - shows server uptime in seconds\n     !joke - tells a random joke\n     !help - shows this help message";
+    }
+
+    return "Bot: Unknown command. Try !help";
+}
+
+
+
 void Bot::run()
 {
     if (auth(this->pw, this->fd))
+    {
+        close(this->fd);
         return ;
+    }
     std::cout << "AUTHENTICATION DONE"<<std::endl;
     std::cout << "MY SOCKET : " << this->fd << std::endl;
 
     ssize_t n;
     while (1)
     {
-        int qw=0;
-        qw++;
-
-        std::cout << "FOR DEBUG QW =" << qw <<std::endl;
         char buf[1024];
-
         n = recv(this->fd, buf, sizeof(buf)-1, 0);
         if (n == 0)
         {
@@ -155,50 +175,11 @@ void Bot::run()
                 std::cerr<<"Invalid format." <<std::endl;
                 continue ;
             }
-            std::string response = "PRIVMSG " + nick + " :Command received: processing: " + command + "\r\n";
+            std::string m = handlebotCommand(command, this->bot_start_time);
+            std::string response = "PRIVMSG " + nick + " :" + m + "\r\n";
             send(this->fd, response.c_str(), response.size(), 0);
+
         }
     }    
 }
 
-
-
-
-
-
-
-
-/*
-
-
-std::string Server::handlebotCommand(std::string &cmd)
-{
-    std::vector<std::string> jokes;
-    jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
-    jokes.push_back("Why did the function return early? It had too many arguments!");
-    jokes.push_back("I would tell you a UDP joke, but you might not get it.");
-    jokes.push_back("if your code works, dont touch it");
-
-
-    if (cmd == "!UPTIME" || cmd == "!uptime")
-    {
-        time_t now = time(0);
-        long uptime_sec = now - this->server_start_time;
-        return "Bot: Server uptime is " + std::to_string(uptime_sec) + " seconds\r\n";
-    } 
-    else if (cmd == "!JOKE" || cmd == "!joke"){
-        int idx = rand() % jokes.size();
-        return "Bot: " + jokes[idx] + "\r\n";
-    } 
-    else if (cmd == "!help" || cmd == "!HELP") {
-        return "Bot: Available commands:\n"
-               ":localhost 001 A !uptime - shows server uptime in seconds\n"
-               ":localhost 001 A  !joke - tells a random joke\n"
-               ":localhost 001 A  !help - shows this help message\r\n";
-    }
-
-    return "Bot: Unknown command. Try !help\r\n";
-}
-
-
-*/

@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/25 16:59:00 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/25 19:30:16 by librahim         ###   ########.fr       */
+/*   Updated: 2025/09/27 18:43:07 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ class Bot
         int fd;
         std::string port;        
         std::string pw;
+        long bot_start_time;
     public :
         Bot(std::string port, std::string password);
         int     check();
