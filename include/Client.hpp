@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:12:52 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/25 17:04:55 by librahim         ###   ########.fr       */
+/*   Updated: 2025/09/26 16:03:13 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ class Client
         int         socket_fd;
         bool        is_nickname;
         bool        is_username;
+        bool        is_bot;
         std::string nickname;
         std::string username;
         std::string real_name;
@@ -37,9 +38,10 @@ class Client
             is_registered = false;
             is_nickname = false;
             is_username = false;
+            is_bot = false;
         }
         Client(int fd) :  is_auth(false), is_registered(false), socket_fd(fd)
-        , is_nickname(false), is_username(false)
+        , is_nickname(false), is_username(false), is_bot(false)
         {
         }
 };

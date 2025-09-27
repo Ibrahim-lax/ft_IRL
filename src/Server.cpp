@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/25 22:54:56 by librahim         ###   ########.fr       */
+/*   Updated: 2025/09/27 18:13:43 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -909,17 +909,19 @@ void    unknown_cmd(Client *client, std::string cmd)
 }
 
 
-void    bot_cmd(Client *client, std::string &cmd, Server *server)
+
+void    bot_cmd(Client *client, std::string &cmd, Server *server, int *fd_bot)
 {
     // std::string bot_response = ":localhost 001 A " + server->handlebotCommand(cmd);
+    (void)server;
     std::string bot_request = client->nickname + "::" + cmd;
-    int bot_fd = server->socket_bot;
+    int bot_fd = *fd_bot;
     if (bot_fd < 0)
         return ;
     send(bot_fd, bot_request.c_str(), bot_request.length(), 0);
 }
 
-void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i)
+void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i, int *fd_bot)
 {
     std::string text;
 
@@ -931,7 +933,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
         return ;
     }
     if (cmd == "NICK")
-        nickname(client, message);
+        nickname(client, message, fd_bot);
     else if (cmd == "JOIN")
         join(client, message);
     else if (cmd == "KICK")
@@ -947,7 +949,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
     else if(cmd == "MODE")
         mode(client, message, server);
     else if (cmd[0] == '!')
-        bot_cmd(client, cmd, server);
+        bot_cmd(client, cmd, server, fd_bot);
     else
         unknown_cmd(client, cmd);
 }
@@ -980,19 +982,21 @@ std::string command(std::string &message, size_t *index)
         message = message.substr(0, j);
     return cmd;
 }
+#include <sstream>
 
-void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password)
+void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password, int *fd_bot)
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
-    
-    if (cmd == "PASS")
+    if (cmd == "BOT")
+        client->is_bot = true;
+    else if (cmd == "PASS")
         client->is_auth = password_check(client, message, password);
     else if (cmd == "NICK")
     {
         if (!client->is_auth)
             return ;
-        nickname(client, message);
+        nickname(client, message, fd_bot);
     }
     else if (cmd == "USER")
     {
@@ -1034,6 +1038,11 @@ bool    password_check(Client *client, std::string pw, std::string password)
         text = ":localhost 464 " + NICK + " :Password incorrect\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
     }
+    if (client->is_bot)
+    {
+        text = ":localhost 001  PASS IS PASS\r\n";
+        send(socket_fd, text.c_str(), text.length(), 0);
+    }
     return (password == pw);
 }
 
@@ -1054,11 +1063,17 @@ bool    is_new_nickname(std::string nick, int socket_fd, std::string NICK)
 }
 
 
-void    nickname(Client *client, std::string nick)
+void    nickname(Client *client, std::string nick, int *fd_bot)
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
 
+    if (client->is_bot == false && nick == "[BOT]")
+    {
+        text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname (this nickname belongs only to bots)\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
     if (nick == "")
     {
         text = ":localhost 431 " + NICK + " :No nickname given\r\n";
@@ -1066,7 +1081,7 @@ void    nickname(Client *client, std::string nick)
     }
     else if (is_illegal(nick))
     {
-        text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname\r\n";  
+        text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     else if (is_new_nickname(nick, client->socket_fd, NICK))
@@ -1074,9 +1089,14 @@ void    nickname(Client *client, std::string nick)
         client->nickname = nick;
         client->is_nickname = true;
     }
-    if (client->nickname == "[BOT]")
-        Server::socket_bot = client->socket_fd; 
+    if (client->is_bot)
+    {
+        text = ":localhost 001  nickname is good\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        *fd_bot = client->socket_fd;
+    }
 }
+
 
 void    show_channels()
 {
@@ -1112,6 +1132,7 @@ void show_clients()
         std::cout << "\tIs Nickname Set: " << (Server::array_clients[i]->is_nickname ? "Yes" : "No") << std::endl;
         std::cout << "\tIs Username Set: " << (Server::array_clients[i]->is_username ? "Yes" : "No") << std::endl;
         std::cout << "\tIs Registered: " << (Server::array_clients[i]->is_registered ? "Yes" : "No") << std::endl;
+        std::cout << "\tIs BOT: " << (Server::array_clients[i]->is_bot ? "Yes" : "No") << std::endl;
 
         std::cout << "----------------------------" << std::endl;
         std::cout << "\tChannels Joined: ";
@@ -1221,6 +1242,7 @@ void    username(Client *client, std::string message)
         client->real_name = array_string[3];
         client->is_username = true;
     }
+    
 }
 
 bool channel_has_one_user(Channel *channel)
@@ -1354,16 +1376,16 @@ void    delete_client(int i)
     delete client;
 }
 
-void    Server::execute(Client *client, std::string &message, int i)
+void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
 {
     size_t  index = 0;
     std::string cmd = command(message, &index);
     if (cmd == "" && index == 0)
         return ;
     if (!client->is_registered)
-        unregister_cmnd(client, cmd, message, this->pw);
+        unregister_cmnd(client, cmd, message, this->pw, fd_bot);
     else
-        register_cmd(client, cmd, message, this->pw, this, i);
+        register_cmd(client, cmd, message, this->pw, this, i, fd_bot);
 }
 
 void Server::run()
@@ -1372,11 +1394,11 @@ void Server::run()
     char buf[513];
     memset(buf, 0, 513);
     size_cl = 0;
-    socket_bot = -1;
     struct sockaddr_in cl_adr;
     size_t bytes_readen;
     socklen_t cl_len = sizeof(cl_adr);
     int i;
+    int socket_bot = -1;
     while (true)
     {
         int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 10);
@@ -1414,7 +1436,7 @@ void Server::run()
                     while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
                         curr = str.substr(0, pos);
-                        execute(array_clients.at(i - 1), curr, i);
+                        execute(array_clients.at(i - 1), curr, i, &socket_bot);
                         if (pos + 1 < (unsigned long)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
                             str = str.substr(pos + 2);
                         else
@@ -1439,31 +1461,3 @@ void Server::run()
 }
 
 
-std::string Server::handlebotCommand(std::string &cmd)
-{
-    std::vector<std::string> jokes;
-    jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
-    jokes.push_back("Why did the function return early? It had too many arguments!");
-    jokes.push_back("I would tell you a UDP joke, but you might not get it.");
-    jokes.push_back("if your code works, dont touch it");
-
-
-    if (cmd == "!UPTIME" || cmd == "!uptime")
-    {
-        time_t now = time(0);
-        long uptime_sec = now - this->server_start_time;
-        return "Bot: Server uptime is " + std::to_string(uptime_sec) + " seconds\r\n";
-    } 
-    else if (cmd == "!JOKE" || cmd == "!joke"){
-        int idx = rand() % jokes.size();
-        return "Bot: " + jokes[idx] + "\r\n";
-    } 
-    else if (cmd == "!help" || cmd == "!HELP") {
-        return "Bot: Available commands:\n"
-               ":localhost 001 A !uptime - shows server uptime in seconds\n"
-               ":localhost 001 A  !joke - tells a random joke\n"
-               ":localhost 001 A  !help - shows this help message\r\n";
-    }
-
-    return "Bot: Unknown command. Try !help\r\n";
-}

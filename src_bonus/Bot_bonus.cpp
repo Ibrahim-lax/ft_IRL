@@ -57,50 +57,62 @@ int Bot::setup()
     freeaddrinfo(res);
     return 0;
 }
+#include <sstream>
 
 int auth(std::string pw,int fd)
 {
+    std::string flag = "BOT\r\n";
     std::string pass = "PASS " + pw + "\r\n";
     std::string nick = "NICK [BOT]\r\n";
     std::string user = "USER [BOT] [BOT] [BOT] [BOT]\r\n";
 
+    send(fd, flag.c_str(), flag.length(), 0);
+    usleep(500);
     send(fd, pass.c_str(), pass.length(), 0);
-    // char rec[1000];
-    // ssize_t n = recv(fd, rec, sizeof(rec), 0);
-    // if (n > 0)
-    // {
-    //     std::cout << n << std::endl;
-    //     std::string msg_pw(rec, n);
-    //     if (msg_pw.size() && msg_pw.find(" 464 ") != std::string::npos)
-    //     {
-    //         std::cerr << "Password typed is incorrect, closing connection" <<std::endl;
-    //         return 1;
-    //     }
-    // }
+    usleep(500);
+    char rec[1000];
+    ssize_t n = recv(fd, rec, sizeof(rec), 0);
+    if (n > 0)
+    {
+        std::string msg_pw(rec, n);
+        if (msg_pw.size() && msg_pw.find(" 464 ") != std::string::npos)
+        {
+            std::cerr << "Password typed is incorrect, closing connection" <<std::endl;
+            return 1;
+        }
+        else if (msg_pw.size() && msg_pw.find("001") != std::string::npos)
+            std::cerr << "Password typed is correct" <<std::endl;
+    }
     send(fd, nick.c_str(), nick.length(), 0);
-    // memset(rec, 0, 1000);
-    // n = recv(fd, rec, sizeof(rec), 0);
-    // if (n > 0)
-    // {
-    //     std::string msg_nick(rec, n);
-    //     if (msg_nick.size() && msg_nick.find(" 432 ") != std::string::npos)
-    //     {
-    //         std::cerr << "Nickname typed is incorrect, closing connection" <<std::endl;
-    //         return 1;
-    //     }
-    // }
+    usleep(500);
+    memset(rec, 0, 1000);
+    n = recv(fd, rec, sizeof(rec), 0);
+    if (n > 0)
+    {
+        std::string msg_nick(rec, n);
+        if (msg_nick.size() && msg_nick.find(" 432 ") != std::string::npos)
+        {
+            std::cerr << "Nickname typed is incorrect, closing connection" <<std::endl;
+            return 1;
+        }
+        else if (msg_nick.size() && msg_nick.find("001") != std::string::npos)
+            std::cerr << "Nickname typed is correct" <<std::endl;
+    }
     send(fd, user.c_str(), user.length(), 0);
-    // memset(rec, 0, 1000);
-    // n = recv(fd, rec, sizeof(rec), 0);
-    // if (n > 0)
-    // {
-    //     std::string msg_us(rec, n);
-    //     if (msg_us.size() && msg_us.find(" 461 ") != std::string::npos)
-    //     {
-    //         std::cerr << "Parameters of USER cmd are incorrect, closing connection" <<std::endl;
-    //         return 1;
-    //     }
-    // }
+    usleep(500);
+    memset(rec, 0, 1000);
+    n = recv(fd, rec, sizeof(rec), 0);
+    if (n > 0)
+    {
+        std::string msg_us(rec, n);
+        if (msg_us.size() && msg_us.find(" 461 ") != std::string::npos)
+        {
+            std::cerr << "Parameters of USER cmd are incorrect, closing connection" <<std::endl;
+            return 1;
+        }
+        else if (msg_us.size() && msg_us.find("001") != std::string::npos)
+            std::cerr << "Username typed is correct" <<std::endl;
+    }
     return 0;
 }
 
@@ -109,6 +121,8 @@ void Bot::run()
     if (auth(this->pw, this->fd))
         return ;
     std::cout << "AUTHENTICATION DONE"<<std::endl;
+    std::cout << "MY SOCKET : " << this->fd << std::endl;
+
     ssize_t n;
     while (1)
     {
@@ -119,10 +133,11 @@ void Bot::run()
         char buf[1024];
 
         n = recv(this->fd, buf, sizeof(buf)-1, 0);
-        //         break ;
-        //     std::cout << "for debug n = "<<n<<std::endl;
-        // }
-        
+        if (n == 0)
+        {
+            std::cout << "Conexion is closed quiting ..."<<std::endl;
+            break ;
+        }
         if (n)
         {
             buf[n] = '\0';
@@ -145,3 +160,45 @@ void Bot::run()
         }
     }    
 }
+
+
+
+
+
+
+
+
+/*
+
+
+std::string Server::handlebotCommand(std::string &cmd)
+{
+    std::vector<std::string> jokes;
+    jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
+    jokes.push_back("Why did the function return early? It had too many arguments!");
+    jokes.push_back("I would tell you a UDP joke, but you might not get it.");
+    jokes.push_back("if your code works, dont touch it");
+
+
+    if (cmd == "!UPTIME" || cmd == "!uptime")
+    {
+        time_t now = time(0);
+        long uptime_sec = now - this->server_start_time;
+        return "Bot: Server uptime is " + std::to_string(uptime_sec) + " seconds\r\n";
+    } 
+    else if (cmd == "!JOKE" || cmd == "!joke"){
+        int idx = rand() % jokes.size();
+        return "Bot: " + jokes[idx] + "\r\n";
+    } 
+    else if (cmd == "!help" || cmd == "!HELP") {
+        return "Bot: Available commands:\n"
+               ":localhost 001 A !uptime - shows server uptime in seconds\n"
+               ":localhost 001 A  !joke - tells a random joke\n"
+               ":localhost 001 A  !help - shows this help message\r\n";
+    }
+
+    return "Bot: Unknown command. Try !help\r\n";
+}
+
+
+*/
