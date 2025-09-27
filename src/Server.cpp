@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/27 18:13:43 by librahim         ###   ########.fr       */
+/*   Updated: 2025/09/27 19:02:07 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1086,6 +1086,11 @@ void    nickname(Client *client, std::string nick, int *fd_bot)
     }
     else if (is_new_nickname(nick, client->socket_fd, NICK))
     {
+        if (client->is_registered)
+        {
+            std::string text = ":" + client->nickname + "!" + client->username + "@localhost NICK " + nick + "\r\n";
+            send(client->socket_fd, text.c_str(), text.length(), 0);
+        }
         client->nickname = nick;
         client->is_nickname = true;
     }
