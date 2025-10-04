@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/27 19:02:07 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/04 15:26:29 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -311,7 +311,7 @@ bool    is_illegal(std::string message)
 bool    is_valid_mask(std::string &channel, Client *client)
 {
     std::string text;
-    if (channel[0] == '#' && !is_illegal(channel.substr(1)))
+    if (channel[0] == '#' && !is_illegal(channel.substr(1)) && channel.length() != 1)
         return true;
     text = ":localhost 476 " + client->nickname + " " + channel + " :Bad Channel Mask\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -921,11 +921,10 @@ void    bot_cmd(Client *client, std::string &cmd, Server *server, int *fd_bot)
     send(bot_fd, bot_request.c_str(), bot_request.length(), 0);
 }
 
-void    register_cmd(Client *client, std::string cmd, std::string message, std::string password, Server *server, int i, int *fd_bot)
+void    register_cmd(Client *client, std::string cmd, std::string message, Server *server, int i, int *fd_bot, std::vector<std::string> array_params)
 {
     std::string text;
 
-    (void)password;
     if (cmd == "PASS" || cmd == "USER")
     {
         text = ":localhost 462 " + client->nickname + " :You may not reregister\r\n";
@@ -933,7 +932,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, std::
         return ;
     }
     if (cmd == "NICK")
-        nickname(client, message, fd_bot);
+        nickname(client, array_params, fd_bot);
     else if (cmd == "JOIN")
         join(client, message);
     else if (cmd == "KICK")
@@ -984,19 +983,53 @@ std::string command(std::string &message, size_t *index)
 }
 #include <sstream>
 
-void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password, int *fd_bot)
+std::vector<std::string> ft_split(std::string &parameters)
+{
+    std::vector<std::string> result;
+    std::string param = "";
+    size_t i = 0;
+
+    while (parameters[i])
+    {
+        i = skip_spaces(parameters, i);
+        if (!parameters[i])
+            break;
+        if (parameters[i] == ':')
+        {
+            param = parameters.substr(i + 1);
+            result.push_back(param);
+            break;
+        }
+        while (parameters[i] && parameters[i] != ' ')
+        {
+            param.push_back(parameters[i]);
+            i++;
+        }
+        result.push_back(param);
+        param = "";
+    }
+    if (result.size() == 0)
+        result.push_back("");
+    for (size_t j = 0; j < result.size(); j++)
+    {
+        std::cout << "Param " << j + 1 << ": [" << result[j] << "]" << std::endl;
+    }
+    return result;
+}
+
+void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password, int *fd_bot, std::vector<std::string> &array_params)
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
     if (cmd == "BOT")
         client->is_bot = true;
     else if (cmd == "PASS")
-        client->is_auth = password_check(client, message, password);
+        client->is_auth = password_check(client, array_params, password);
     else if (cmd == "NICK")
     {
         if (!client->is_auth)
             return ;
-        nickname(client, message, fd_bot);
+        nickname(client, array_params, fd_bot);
     }
     else if (cmd == "USER")
     {
@@ -1022,12 +1055,18 @@ void    unregister_cmnd(Client *client,std::string &cmd, std::string message, st
     }
 }
 
-bool    password_check(Client *client, std::string pw, std::string password)
+bool    password_check(Client *client, std::vector<std::string> array_params, std::string password)
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
     int socket_fd = client->socket_fd;
-
+    if (array_params.size() > 1)
+    {
+        text = ":localhost 461 " + NICK + " PASS :Too many parameters\r\n";
+        send(socket_fd, text.c_str(), text.length(), 0);
+        return false;
+    }
+    std::string pw = array_params[0];
     if (pw == "")
     {
         text = ":localhost 461 " + NICK + " PASS :Not enough parameters\r\n";
@@ -1063,10 +1102,17 @@ bool    is_new_nickname(std::string nick, int socket_fd, std::string NICK)
 }
 
 
-void    nickname(Client *client, std::string nick, int *fd_bot)
+void    nickname(Client *client, std::vector<std::string> array_params, int *fd_bot)
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
+    if (array_params.size() > 1)
+    {
+        text = ":localhost 461 " + NICK + " NICK :Too many parameters\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }   
+    std::string nick = array_params[0];
 
     if (client->is_bot == false && nick == "[BOT]")
     {
@@ -1098,6 +1144,7 @@ void    nickname(Client *client, std::string nick, int *fd_bot)
     {
         text = ":localhost 001  nickname is good\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
+        
         *fd_bot = client->socket_fd;
     }
 }
@@ -1130,9 +1177,9 @@ void show_clients()
     {
         std::cout << "Client " << i + 1 << ": " << std::endl;
         std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
-        std::cout << "\tNickname: " << Server::array_clients[i]->nickname << std::endl;
-        std::cout << "\tUsername: " << Server::array_clients[i]->username << std::endl;
-        std::cout << "\tReal Name: " << Server::array_clients[i]->real_name << std::endl;
+        std::cout << "\tNickname: [" << Server::array_clients[i]->nickname << "]" << std::endl;
+        std::cout << "\tUsername: [" << Server::array_clients[i]->username << "]" << std::endl;
+        std::cout << "\tReal Name: [" << Server::array_clients[i]->real_name << "]" << std::endl;
         std::cout << "\tIs Authenticated: " << (Server::array_clients[i]->is_auth ? "Yes" : "No") << std::endl;
         std::cout << "\tIs Nickname Set: " << (Server::array_clients[i]->is_nickname ? "Yes" : "No") << std::endl;
         std::cout << "\tIs Username Set: " << (Server::array_clients[i]->is_username ? "Yes" : "No") << std::endl;
@@ -1150,13 +1197,14 @@ void show_clients()
             std::cout << std::endl;
             for (size_t j = 0; j < Server::array_clients[i]->channelsjoined.size(); j++)
             {
-                Channel* ch = Server::array_clients[i]->channelsjoined[j];
-                std::cout << "\t  - " << ch->name;
-                if (!ch->topic.empty())
-                    std::cout << " (Topic: " << ch->topic << ")";
-                else
-                    std::cout << " (No topic set)";
-                std::cout << std::endl;
+                std::cout << "\t  - [" << Server::array_clients[i]->channelsjoined[j]->name << "]";
+                // Channel* ch = Server::array_clients[i]->channelsjoined[j];
+                // std::cout << "\t  - " << ch->name;
+                // if (!ch->topic.empty())
+                //     std::cout << " (Topic: " << ch->topic << ")";
+                // else
+                //     std::cout << " (No topic set)";
+                // std::cout << std::endl;
             }
         }
 
@@ -1229,6 +1277,13 @@ bool is_valid_user(std::vector<std::string> &array_string, Client *client, std::
     return true;
 }
 
+std::string real_name(std::string &real)
+{
+    if (real[0] == ':')
+        return real.substr(1);
+    return real;
+}
+
 void    username(Client *client, std::string message)
 {
     std::vector<std::string> array_string;
@@ -1244,7 +1299,7 @@ void    username(Client *client, std::string message)
     if (is_valid_user(array_string, client, NICK))
     {
         client->username = array_string[0];
-        client->real_name = array_string[3];
+        client->real_name = real_name(array_string[3]);
         client->is_username = true;
     }
     
@@ -1383,14 +1438,16 @@ void    delete_client(int i)
 
 void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
 {
+    (void)i;
     size_t  index = 0;
     std::string cmd = command(message, &index);
+    std::vector<std::string> array_params = ft_split(message);
     if (cmd == "" && index == 0)
         return ;
     if (!client->is_registered)
-        unregister_cmnd(client, cmd, message, this->pw, fd_bot);
+        unregister_cmnd(client, cmd, message, this->pw, fd_bot, array_params);//done
     else
-        register_cmd(client, cmd, message, this->pw, this, i, fd_bot);
+        register_cmd(client, cmd, message, this, i, fd_bot, array_params);
 }
 
 void Server::run()

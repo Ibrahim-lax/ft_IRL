@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/27 17:56:41 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/02 16:08:49 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,8 +58,8 @@ class Server
         std::string  handlebotCommand(std::string &cmd);
 };
 
-bool    password_check(Client *client, std::string message, std::string password);
-void    nickname(Client *client, std::string message, int *fd_bot);
+bool    password_check(Client *client, std::vector<std::string> array_params, std::string password);
+void    nickname(Client *client, std::vector<std::string> array_params, int *fd_bot);
 void    username(Client *client, std::string message);
 void    delete_client(int i);
 #endif
