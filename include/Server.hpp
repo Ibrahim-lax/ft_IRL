@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/02 16:08:49 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/08 22:47:49 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@
 #include <fcntl.h>       // For fcntl()
 #include <poll.h>        // For poll()
 #include <vector>
-#include <map>
 #include "Client.hpp"
 #include "Channel.hpp"
 

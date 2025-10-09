@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/04 15:26:29 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/09 23:02:49 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,7 @@ bool client_joined_channel(Client *client, size_t i)
     {
         if (Server::channels[i]->clients[j]->socket_fd == client->socket_fd)
         {
-            std::string text = "You are already joined to this channel\r\n";
+            std::string text = ":localhost 443 " + client->nickname + " #" + Server::channels[i]->name + " :is already on channel\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -110,7 +110,7 @@ bool    key_check(Client *client, std::string &key, int socket_fd, Channel *chan
     {
         if (key != channel->password)
         {
-            text = ":localhost 475 " + client->nickname + channel->name + " :Cannot join channel (+k)\r\n";
+            text = ":localhost 475 " + client->nickname + " #" + channel->name + " :Cannot join channel (+k)\r\n";
             send(socket_fd, text.c_str(), text.length(), 0);
             return false;
         }
@@ -152,7 +152,7 @@ bool invite_only(Channel *channel, Client *client)
         if (!is_client_invited(channel, client))
         {
             std::string text;
-            text = ":localhost 473 " + client->nickname + " " + channel->name + " :Cannot join channel (+i)\r\n";
+            text = ":localhost 473 " + client->nickname + " #" + channel->name + " :Cannot join channel (+i)\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;  // **block the join**
         }
@@ -167,7 +167,7 @@ bool    channel_full(Channel *channel, Client *client)
     {
         if (channel->clients.size() >= (unsigned int) channel->limit)
         {
-            text = ":localhost 471 " + client->nickname + " " + channel->name + " :Cannot join channel (+l)\r\n";
+            text = ":localhost 471 " + client->nickname + " #" + channel->name + " :Cannot join channel (+l)\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -326,7 +326,6 @@ void    join_channel(Client *client, std::string &channel_name, std::string &key
         return ;
     Channel *channel = new Channel();
     channel->name = channel_name;
-    channel->admin_socket_fd = client->socket_fd;
     channel->operators.push_back(client->socket_fd);
     client->channelsjoined.push_back(channel);
     client->channelsjoined.back()->clients.push_back(client);
@@ -350,20 +349,24 @@ bool    max_channel_reached(Client *client, std::string &channelname)
 
 std::string get_key(std::vector<std::string> &array_keys, unsigned int i)
 {
-    
-    std::cout << "size of k" << std::endl;
     if (i < array_keys.size())
         return array_keys[i];
     return "";
 }
 
-void    join(Client *client, std::string &message)
+void    join(Client *client, std::string &message, std::vector<std::string> &array_params)
 {
     std::string text;
     std::vector<std::string> array_channels;
     std::vector<std::string> array_keys;
     std::string key;
     
+    if (array_params.size() > 2)
+    {
+        text = ":localhost 461 " + client->nickname + " JOIN :Too many parameters\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
     parse_join_parameters(message, array_channels, array_keys);
     if (message == "")
     {
@@ -371,7 +374,7 @@ void    join(Client *client, std::string &message)
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    for (int i = 0; (unsigned long)i < array_channels.size(); i++)
+    for (size_t i = 0; i < array_channels.size(); i++)
     {
         if (max_channel_reached(client, array_channels[i]))
             continue;
@@ -590,11 +593,10 @@ void    kicking(Client *client, int i, int j, std::string &reason)
     else if (Server::channels[i]->isOperator(kicked_client->socket_fd))
     {
         if (Server::channels[i]->operators.size() > 1)
-            Server::channels[i]->removeOperatorVV(kicked_client->socket_fd);
+            Server::channels[i]->removeOperator(kicked_client->socket_fd);
         else if (Server::channels[i]->operators.size() == 1)
         {
-            Server::channels[i]->removeOperatorVV(kicked_client->socket_fd);
-            Server::channels[i]->admin_socket_fd = Server::channels[i]->clients[0]->socket_fd;
+            Server::channels[i]->removeOperator(kicked_client->socket_fd);
             text = ":localhost MODE #" + Server::channels[i]->name + " +o " + Server::channels[i]->clients[0]->nickname + "\r\n";
             inform_all_clients(i, text);
             Server::channels[i]->addOperator(Server::channels[i]->clients[0]->socket_fd);
@@ -934,7 +936,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     if (cmd == "NICK")
         nickname(client, array_params, fd_bot);
     else if (cmd == "JOIN")
-        join(client, message);
+        join(client, message, array_params);//join 100% well
     else if (cmd == "KICK")
         kick(client, message);
     else if (cmd == "INVITE")
@@ -949,6 +951,8 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
         mode(client, message, server);
     else if (cmd[0] == '!')
         bot_cmd(client, cmd, server, fd_bot);
+    else if (cmd == "PONG")
+        return ;
     else
         unknown_cmd(client, cmd);
 }
@@ -1111,7 +1115,7 @@ void    nickname(Client *client, std::vector<std::string> array_params, int *fd_
         text = ":localhost 461 " + NICK + " NICK :Too many parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
-    }   
+    }
     std::string nick = array_params[0];
 
     if (client->is_bot == false && nick == "[BOT]")
@@ -1155,7 +1159,7 @@ void    show_channels()
     for (unsigned long i = 0; i < Server::channels.size(); i++)
     {
         std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
-        std::cout << "\t" << "Admin Socket FD: " << Server::channels[i]->admin_socket_fd << std::endl;
+        show_operators(Server::channels[i]);
         std::cout << "\t" << "Clients in Channel: ";
         if (Server::channels[i]->clients.empty())
             std::cout << "None" << std::endl;
@@ -1363,20 +1367,6 @@ void    remove_channel(Channel *channel)
     }
 }
 
-bool    channel_has_multiple_clients_not_admin(Channel *channel, Client *client)
-{
-    if (channel->clients.size() > 1 && channel->admin_socket_fd != client->socket_fd)
-        return true;
-    return false;
-}
-
-bool    channel_has_multiple_clients_admin(Channel *channel, Client *client)
-{
-    if (channel->clients.size() > 1 && channel->admin_socket_fd == client->socket_fd)
-        return true;
-    return false;
-}
-
 void    reclame_channel(Channel *channel, Client *client)
 {
     std::string text;
@@ -1409,11 +1399,10 @@ void    handle_channels(int i)
         if (channel->isOperator(Server::array_clients[i - 1]->socket_fd))
         {
             if (channel->operators.size() > 1)
-                channel->removeOperatorVV(Server::array_clients[i - 1]->socket_fd);
+                channel->removeOperator(Server::array_clients[i - 1]->socket_fd);
             else if (channel->operators.size() == 1)
             {
-                channel->removeOperatorVV(Server::array_clients[i - 1]->socket_fd);
-                channel->admin_socket_fd = channel->clients[0]->socket_fd;
+                channel->removeOperator(Server::array_clients[i - 1]->socket_fd);
                 std::string text = ":localhost MODE #" + channel->name + " +o " + channel->clients[0]->nickname + "\r\n";
                 inform_all_clients(j, text);
                 channel->addOperator(channel->clients[0]->socket_fd);

@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/09/17 13:58:16 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/08 22:38:10 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,9 +125,8 @@ void privmsg(Client *client, std::string &message, Server *server)
 
     // extract message text
     std::string msgText;
-    if (i < message.size() && message[i] == ':')
+    if (i < message.size())
     {
-        i++; // skip ':'
         msgText = message.substr(i);
     }
 

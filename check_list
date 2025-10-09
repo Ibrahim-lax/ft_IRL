@@ -17,7 +17,7 @@ PRIVMSG ✅
 MODE    ✅
 TOPIC   ✅
 
-LEAKS : ❌
+LEAKS : ✅
 SIGNALS: ❌
 
 ERROR_MSGS  
@@ -155,3 +155,11 @@ NOTE :
 
                                 👉 Overall:
                                 You’re in good shape for ft_irc — you’ve got core JOIN/KICK/INVITE logic down and it’s fairly RFC-friendly. The biggest risks are memory leaks (raw pointers everywhere) and parsing fragility. If you lock those down and unify your error codes, you’ll have a solid server.
+
+
+
+
+
+TO YOSABER:
+    NEW ERROR : IN MODE :MODE #1 +U :Unknown MODE flag
+    also i fix ":" of privmsg | make it optional in parsing and som of ":" in replies
