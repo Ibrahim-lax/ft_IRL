@@ -1,0 +1,165 @@
+PASS    ✅
+NICK    ✅
+USER    ✅
+JOIN    ✅
+KICK    ✅
+INVITE  ✅
+QUIT    ✅
+
+
+
+
+
+
+
+
+PRIVMSG ✅
+MODE    ✅
+TOPIC   ✅
+
+LEAKS : ✅
+SIGNALS: ❌
+
+ERROR_MSGS  
+
+
+PARSING INPUT
+
+MAKEFILE ✅
+
+MERGE OF EVERYTHING
+
+SERVER RESPONSE SYNTAX 
+
+
+SIGNALS
+
+
+
+
+
+BOT
+
+
+
+
+FILE TRANSFER 
+
+
+
+LIMECHAT ADAPTING TESTING 
+
+
+
+
+
+NOTE :
+                                    Thanks for sharing the code — that’s a big chunk, so I’ll give you a structured review of your IRC server as it stands. I’ll split my thoughts into good parts, issues / risks, and next steps to improve.
+
+                                ✅ Good parts
+
+                                Command coverage: You already have JOIN, KICK, INVITE, QUIT, error handling, and parts of registration. That’s a lot of core IRC logic in place.
+
+                                Separation of logic: You’re pushing parsing (like parse_join_parameters, parse_kick_parameters) into dedicated helpers, which is good for clarity.
+
+                                Checks implemented: You cover limits, invite-only, password, bans, and admin/operator logic. That’s robust.
+
+                                Clean replies: You’re formatting replies mostly according to RFC numerics (401, 403, 421, etc.). That’s the right direction.
+
+                                Dynamic memory cleanup: You’re actually removing empty channels, deleting them, and reassigning operators. Nice touch.
+
+                                ⚠️ Issues / Risks
+
+                                Global static vectors
+
+                                std::vector<Channel*> Server::channels;
+                                std::vector<Client*> Server::array_clients;
+
+
+                                This makes state global-ish, which can complicate future scaling and unit testing. Keeping them as instance members of Server would be safer.
+
+                                Memory leaks
+
+                                You new Channel() but delete only when channel is empty. What about clients? Do you delete Client on disconnect?
+
+                                Server::array_clients stores raw pointers, same risk.
+
+                                Suggestion: switch to std::unique_ptr or std::shared_ptr.
+
+                                String parsing = brittle
+
+                                You parse JOIN, KICK, INVITE, QUIT by hand with while loops. This works but is error-prone.
+
+                                Example: if a client sends multiple spaces or malformed params, you may dereference message[i] past bounds.
+
+                                Suggestion: use std::istringstream or a custom tokenizer.
+
+                                Error message consistency
+
+                                Sometimes you use :localhost 4xx ..., sometimes just "ERR_USERONCHANNEL\r\n".
+
+                                RFC requires consistent numeric replies. Clients will rely on that.
+
+                                Operator/admin logic
+
+                                is_client_admin only checks operator, but you treat admin_socket_fd separately. This could desync.
+
+                                If admin leaves, you reassign, but you should broadcast MODE +o consistently.
+
+                                Thread-safety
+
+                                Not a big issue yet since you use poll() (single-threaded), but all those global vectors could be a race condition if you ever switch to threads.
+
+                                Hardcoded port
+
+                                "6667" is baked in setup(). But your subject requires ./ircserv <port> <password>. You’ll need to pass this->port instead.
+
+                                RFC compliance (JOIN masks, channel types)
+
+                                You only support #channel syntax. RFC1459 also allows & (local), + (modeless). Might be ignored in your project, but be aware.
+
+                                🚀 Next steps to improve
+
+                                Refactor ownership
+
+                                Replace Channel* and Client* with std::unique_ptr<Channel> and std::unique_ptr<Client>.
+
+                                That way, deletion is automatic when you erase from vectors.
+
+                                Consistent error replies
+
+                                Replace "ERR_..." strings with actual RFC numerics everywhere.
+
+                                Robust parsing
+
+                                Write a helper std::vector<std::string> tokenize(const std::string&, char delimiter = ' ');
+
+                                Then your parsing code (parse_join_parameters, parse_kick_parameters) becomes cleaner and safer.
+
+                                Command dispatch table
+
+                                Instead of if/else if (cmd == "JOIN") ..., store function pointers in a map:
+
+                                std::map<std::string, std::function<void(Client*, std::string&)>> commands;
+
+
+                                This keeps register_cmd lean and makes it easy to add more commands.
+
+                                Registration flow
+
+                                Right now, PASS, NICK, USER handling looks incomplete. Make sure you enforce the full handshake before allowing JOIN.
+
+                                Testing utilities
+
+                                Your show_array_clients() and show_array_channels() are good debug helpers. Keep them, maybe guard with #ifdef DEBUG.
+
+                                👉 Overall:
+                                You’re in good shape for ft_irc — you’ve got core JOIN/KICK/INVITE logic down and it’s fairly RFC-friendly. The biggest risks are memory leaks (raw pointers everywhere) and parsing fragility. If you lock those down and unify your error codes, you’ll have a solid server.
+
+
+
+
+
+TO YOSABER:
+    NEW ERROR : IN MODE :MODE #1 +U :Unknown MODE flag
+    also i fix ":" of privmsg | make it optional in parsing and som of ":" in replies
