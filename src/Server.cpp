@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/09 23:02:49 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/11 14:30:13 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -247,7 +247,7 @@ bool    exist_channel(std::string &name, Client *client, std::string &key)
             client->channelsjoined.push_back(channel);
             client->channelsjoined.back()->clients.push_back(client);
             send_join_messages(channel, client);
-            if (channel->is_topic_restricted)
+            if (channel->topic_join_msg)
             {
                 text = ":localhost 332 " + client->nickname + " #" + channel->name + " :" + channel->topic + "\r\n";
                 send(client->socket_fd, text.c_str(), text.length(), 0);

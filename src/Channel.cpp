@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/10/08 22:38:10 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/11 14:27:42 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,7 @@ void topic(Client *client, std::string &message, Server *server)
 
     // set new topic
     channel->topic = topicText;
+    channel->topic_join_msg = true;
 
     // broadcast to all clients in channel
     std::string notify = ":" + client->nickname + " TOPIC #" + channel->name + " :" + topicText + "\r\n";

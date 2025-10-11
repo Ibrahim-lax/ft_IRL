@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/16 06:54:56 by mjuicha           #+#    #+#             */
-/*   Updated: 2025/10/09 22:13:03 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/11 14:29:31 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,12 +30,13 @@ public:
     bool is_password_required;
     bool is_limit_set;
     bool is_topic_restricted; // +t mode
+    bool topic_join_msg;
 
-    Channel() : password(""), is_invite_only(false), is_password_required(false), is_limit_set(false), is_topic_restricted(false) {}
+    Channel() : password(""), is_invite_only(false), is_password_required(false), is_limit_set(false), is_topic_restricted(false), topic_join_msg(false) {}
 
     Channel(std::string channel_name, int admin_fd)
         : name(channel_name),
-          password(""), is_invite_only(false), is_password_required(false),  is_limit_set(false), is_topic_restricted(false)
+          password(""), is_invite_only(false), is_password_required(false),  is_limit_set(false), is_topic_restricted(false), topic_join_msg(false)
     {
         operators.push_back(admin_fd); // creator is automatically an operator
     }
