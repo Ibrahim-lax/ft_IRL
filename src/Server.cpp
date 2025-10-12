@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/11 14:30:13 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/12 16:23:05 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -500,7 +500,7 @@ bool valid_nickname(std::string &nick, int i, Client *client, int *j)
     return true;
 }
 
-void    parse_kick_parameters(std::string &message, std::string &name_channel, std::string &nickname, std::string &reason)
+bool    parse_kick_parameters(std::string &message, std::string &name_channel, std::string &nickname, std::string &reason)
 {
     int i = 0;
 
@@ -508,7 +508,7 @@ void    parse_kick_parameters(std::string &message, std::string &name_channel, s
     if (!message[i])
     {
         message = "";
-        return ;
+        return false;
     }
     while (message[i] && message[i] != ' ')
     {
@@ -519,7 +519,7 @@ void    parse_kick_parameters(std::string &message, std::string &name_channel, s
     if (!message[i])
     {
         message = "";
-        return ;
+        return false;
     }
     while (message[i] && message[i] != ' ')
     {
@@ -528,8 +528,11 @@ void    parse_kick_parameters(std::string &message, std::string &name_channel, s
     }
     i = skip_spaces(message, i);
     if (!message[i])
-        return ;
+        return false;
     reason = message.substr(i);
+    if (reason[0] == ':')
+        reason = reason.substr(1);
+    return true;
 }
 
 void remove_invited(Channel *channel)
@@ -604,7 +607,7 @@ void    kicking(Client *client, int i, int j, std::string &reason)
     }
 }
 
-void    kick(Client *client, std::string &message)
+void    kick(Client *client, std::string &message, std::vector<std::string> &array_params)
 {
     std::string text;
     std::string name_channel;
@@ -612,8 +615,15 @@ void    kick(Client *client, std::string &message)
     std::string reason;
     int I_CH = -1;
     int I_NK = -1;
-    
-    parse_kick_parameters(message, name_channel, nick_to_kick, reason);
+    bool is_reason = false;
+
+    if (array_params.size() > 3)
+    {
+        text = ":localhost 461 " + client->nickname + " KICK :Too many parameters\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
+    is_reason = parse_kick_parameters(message, name_channel, nick_to_kick, reason);
     if (message == "")
     {
         text = ":localhost 461 " + client->nickname + " KICK :Not enough parameters\r\n";
@@ -938,7 +948,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if (cmd == "JOIN")
         join(client, message, array_params);//join 100% well
     else if (cmd == "KICK")
-        kick(client, message);
+        kick(client, message, array_params);
     else if (cmd == "INVITE")
         invite(client, message);
     else if(cmd == "QUIT")
