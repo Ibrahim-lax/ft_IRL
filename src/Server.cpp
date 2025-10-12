@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/10 23:10:34 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/12 15:22:16 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1485,12 +1485,12 @@ void Server::run()
                 {
                     std::string str(buf);
                     buffs.at(i - 1) += str;
-                    std::string curr;
+                    std::cout << "Message from client " << i << ": " << buffs.at(i - 1) << std::endl;
                     unsigned long pos = 0;
                     while ((pos = buffs.at(i - 1).find_first_of("\r\n")) != (unsigned long) std::string::npos)
                     {
-                        curr = buffs.at(i - 1).substr(0, pos);
-                        execute(array_clients.at(i - 1), curr, i, &socket_bot);
+                        buffs.at(i - 1) = buffs.at(i - 1).substr(0, pos);
+                        execute(array_clients.at(i - 1), buffs.at(i - 1), i, &socket_bot);
                         if (pos + 1 < (unsigned long)buffs.at(i - 1).length() && buffs.at(i - 1)[pos] == '\r' && buffs.at(i - 1)[pos + 1] == '\n')
                             buffs.at(i - 1) = buffs.at(i - 1).substr(pos + 2);
                         else if (pos + 1 < (unsigned long)buffs.at(i - 1).length() && (buffs.at(i - 1)[pos] == '\r' || buffs.at(i - 1)[pos] == '\n'))
