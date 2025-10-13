@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/12 15:22:16 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/13 20:38:13 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1486,16 +1486,27 @@ void Server::run()
                     std::string str(buf);
                     buffs.at(i - 1) += str;
                     std::cout << "Message from client " << i << ": " << buffs.at(i - 1) << std::endl;
+                    std::string cur;
                     unsigned long pos = 0;
-                    while ((pos = buffs.at(i - 1).find_first_of("\r\n")) != (unsigned long) std::string::npos)
+                    while ((pos = buffs.at(i - 1).find_first_of("\n")) != (unsigned long) std::string::npos)
                     {
-                        buffs.at(i - 1) = buffs.at(i - 1).substr(0, pos);
-                        execute(array_clients.at(i - 1), buffs.at(i - 1), i, &socket_bot);
-                        if (pos + 1 < (unsigned long)buffs.at(i - 1).length() && buffs.at(i - 1)[pos] == '\r' && buffs.at(i - 1)[pos + 1] == '\n')
-                            buffs.at(i - 1) = buffs.at(i - 1).substr(pos + 2);
-                        else if (pos + 1 < (unsigned long)buffs.at(i - 1).length() && (buffs.at(i - 1)[pos] == '\r' || buffs.at(i - 1)[pos] == '\n'))
-                            buffs.at(i - 1) = buffs.at(i - 1).substr(pos + 1);
+                        if (buffs.at(i - 1)[pos - 1] == '\r')
+                            cur = buffs.at(i - 1).substr(0, pos - 1);
+                        else
+                            cur = buffs.at(i - 1).substr(0, pos);
+                        execute(array_clients.at(i - 1), cur, i, &socket_bot);
+                        if (pos > 0 && buffs[i-1][pos - 1] == '\r')
+                        {
+                            cur = buffs[i-1].substr(0, pos - 1);
+                            buffs[i-1] = buffs[i-1].substr(pos + 1);
+                        }
+                        else
+                        {
+                            cur = buffs[i-1].substr(0, pos);
+                            buffs[i-1] = buffs[i-1].substr(pos + 1);
+                        }
                     }
+                    show_clients();
                 }
                 else if (bytes_readen == 0)
                 {
