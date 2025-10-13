@@ -49,7 +49,6 @@ int Bot::setup()
     this->bot_start_time = time(0);
     return 0;
 }
-#include <sstream>
 
 int auth(std::string pw,int fd)
 {
@@ -108,7 +107,7 @@ int auth(std::string pw,int fd)
     return 0;
 }
 
-std::string handlebotCommand(std::string &cmd, long t)
+std::string handlebotCommand(std::string &cmd, long t, int fd, std::string nickname)
 {
     std::vector<std::string> jokes;
     jokes.push_back("Why do programmers prefer dark mode? Because light attracts bugs!");
@@ -121,22 +120,27 @@ std::string handlebotCommand(std::string &cmd, long t)
     {
         time_t now = time(0);
         long uptime_sec = now - t;
-        return "Bot: Bot started " + std::to_string(uptime_sec) + " seconds ago";
+        return "Bot started " + std::to_string(uptime_sec) + " seconds ago";
     } 
     else if (!cmd.find("!JOKE") || !cmd.find("!joke"))
     {
         int idx = rand() % jokes.size();
-        return "Bot: " + jokes[idx];
+        return jokes[idx];
     } 
     else if (!cmd.find("!HELP") || !cmd.find("!help"))
     {
-        return "Bot: Available commands:\n     !uptime - shows server uptime in seconds\n     !joke - tells a random joke\n     !help - shows this help message";
+        std::string snd_res;
+        //"Bot: Available commands:\n     !uptime - shows server uptime in seconds\n     !joke - tells a random joke\n"
+        snd_res = "PRIVMSG " + nickname + " Available commands :\r\n";
+        send(fd, snd_res.c_str(), snd_res.size(), 0);
+        snd_res = "PRIVMSG " + nickname + "     !uptime - shows server uptime in seconds\r\n";
+        send(fd, snd_res.c_str(), snd_res.size(), 0);
+        snd_res = "PRIVMSG " + nickname + "     !joke - tells a random joke\r\n";
+        send(fd, snd_res.c_str(), snd_res.size(), 0);
+        return "     !help - shows this help message";
     }
-
     return "Bot: Unknown command. Try !help";
 }
-
-
 
 void Bot::run()
 {
@@ -155,7 +159,7 @@ void Bot::run()
         n = recv(this->fd, buf, sizeof(buf)-1, 0);
         if (n == 0)
         {
-            std::cout << "Conexion is closed quiting ..."<<std::endl;
+            std::cout << "Connexion is closed quiting ..."<<std::endl;
             break ;
         }
         if (n)
@@ -175,10 +179,9 @@ void Bot::run()
                 std::cerr<<"Invalid format." <<std::endl;
                 continue ;
             }
-            std::string m = handlebotCommand(command, this->bot_start_time);
-            std::string response = "PRIVMSG " + nick + " :" + m + "\r\n";
+            std::string m = handlebotCommand(command, this->bot_start_time,this->fd, nick);
+            std::string response = "PRIVMSG " + nick + " " + m + "\r\n";
             send(this->fd, response.c_str(), response.size(), 0);
-
         }
     }    
 }

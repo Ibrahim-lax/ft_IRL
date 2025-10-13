@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/13 20:38:13 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/13 21:31:06 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1490,6 +1490,7 @@ void Server::run()
                     unsigned long pos = 0;
                     while ((pos = buffs.at(i - 1).find_first_of("\n")) != (unsigned long) std::string::npos)
                     {
+                        std::cout << " \n \n \n <<<entering processing of command scope>>> \n \n \n";
                         if (buffs.at(i - 1)[pos - 1] == '\r')
                             cur = buffs.at(i - 1).substr(0, pos - 1);
                         else
@@ -1506,7 +1507,7 @@ void Server::run()
                             buffs[i-1] = buffs[i-1].substr(pos + 1);
                         }
                     }
-                    show_clients();
+                    // show_clients(); 
                 }
                 else if (bytes_readen == 0)
                 {
