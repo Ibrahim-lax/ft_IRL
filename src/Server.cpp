@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/12 16:23:05 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/14 14:42:57 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,6 @@ Server::Server(std::string port, std::string passw)
     this->port = port;
     this->pw = passw;
     this->size_cl = 0;
-    this->server_start_time = time(0);
 }
 size_t skip_spaces(std::string message, size_t i);
 
@@ -421,7 +420,7 @@ bool valid_channel(std::string &channel_name, Client *client, int *i)
         }
     }
     std::string text;
-    text = ":localhost 403 " + client->nickname + " " + channel_name + " :No such channel\r\n";
+    text = ":localhost 403 " + client->nickname + " #" + channel_name + " :No such channel\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -434,7 +433,7 @@ bool    is_client_joined(Client *client, int i)
             return true;
     }
     std::string text;
-    text = ":localhost 442 " + client->nickname + " " + Server::channels[i]->name + " :You're not on that channel\r\n";
+    text = ":localhost 442 " + client->nickname + " #" + Server::channels[i]->name + " :You're not on that channel\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -444,7 +443,7 @@ bool    is_client_admin(Client *client, int i)
     if (Server::channels[i]->isOperator(client->socket_fd))
         return true;
     std::string text;
-    text = ":localhost 482 " + client->nickname + " " + Server::channels[i]->name + " :You're not channel operator\r\n";
+    text = ":localhost 482 " + client->nickname + " #" + Server::channels[i]->name + " :You're not channel operator\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -485,7 +484,7 @@ bool    is_nick_joined(std::string &nick, int i, int *j, Client *client)
         }
     }
     std::string text;
-    text = ":localhost 441 " + client->nickname + " " + nick + " " + Server::channels[i]->name + " :They aren't on that channel\r\n";
+    text = ":localhost 441 " + client->nickname + " " + nick + " #" + Server::channels[i]->name + " :They aren't on that channel\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -500,7 +499,7 @@ bool valid_nickname(std::string &nick, int i, Client *client, int *j)
     return true;
 }
 
-bool    parse_kick_parameters(std::string &message, std::string &name_channel, std::string &nickname, std::string &reason)
+void    parse_kick_parameters(std::string &message, std::string &name_channel, std::string &nickname, std::string &reason)
 {
     int i = 0;
 
@@ -508,7 +507,7 @@ bool    parse_kick_parameters(std::string &message, std::string &name_channel, s
     if (!message[i])
     {
         message = "";
-        return false;
+        return;
     }
     while (message[i] && message[i] != ' ')
     {
@@ -519,7 +518,7 @@ bool    parse_kick_parameters(std::string &message, std::string &name_channel, s
     if (!message[i])
     {
         message = "";
-        return false;
+        return;
     }
     while (message[i] && message[i] != ' ')
     {
@@ -528,11 +527,10 @@ bool    parse_kick_parameters(std::string &message, std::string &name_channel, s
     }
     i = skip_spaces(message, i);
     if (!message[i])
-        return false;
+        return;
     reason = message.substr(i);
     if (reason[0] == ':')
         reason = reason.substr(1);
-    return true;
 }
 
 void remove_invited(Channel *channel)
@@ -615,7 +613,6 @@ void    kick(Client *client, std::string &message, std::vector<std::string> &arr
     std::string reason;
     int I_CH = -1;
     int I_NK = -1;
-    bool is_reason = false;
 
     if (array_params.size() > 3)
     {
@@ -623,7 +620,7 @@ void    kick(Client *client, std::string &message, std::vector<std::string> &arr
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
-    is_reason = parse_kick_parameters(message, name_channel, nick_to_kick, reason);
+    parse_kick_parameters(message, name_channel, nick_to_kick, reason);
     if (message == "")
     {
         text = ":localhost 461 " + client->nickname + " KICK :Not enough parameters\r\n";
@@ -1478,8 +1475,10 @@ void Server::run()
             }
             size_cl++;
             std::cout << "client of socket <" << client_fd << "> CONNECTED" << std::endl;
-            register_cl(&this->poll_fds, client_fd); // vetor 
-            array_clients.push_back(new Client(client_fd));  // vector -> 0_ -> sizecl 
+            register_cl(&this->poll_fds, client_fd);
+            array_clients.push_back(new Client(client_fd));
+            std::string buf_client = "";
+            buffs.push_back(buf_client);
         }
         i = 0;
         while (++i <= size_cl)
@@ -1491,20 +1490,29 @@ void Server::run()
                 if (bytes_readen > 0)
                 {
                     std::string str(buf);
-                    std::string curr;
-                    std::cout <<"MESSAGE DISPLAY FOR DEBUGGING GGGGG :" << str << std::endl;
+                    buffs.at(i - 1) += str;
+                    std::cout << "Message from client " << i << ": " << buffs.at(i - 1) << std::endl;
+                    std::string cur;
                     unsigned long pos = 0;
-                    while ((pos = str.find_first_of("\r\n")) != (unsigned long) std::string::npos)
+                    while ((pos = buffs.at(i - 1).find_first_of("\n")) != (unsigned long) std::string::npos)
                     {
-                        curr = str.substr(0, pos);
-                        execute(array_clients.at(i - 1), curr, i, &socket_bot);
-                        if (pos + 1 < (unsigned long)str.length() && str[pos] == '\r' && str[pos + 1] == '\n')
-                            str = str.substr(pos + 2);
+                        std::cout << " \n \n \n <<<entering processing of command scope>>> \n \n \n";
+                        if (buffs.at(i - 1)[pos - 1] == '\r')
+                            cur = buffs.at(i - 1).substr(0, pos - 1);
                         else
-                            str = str.substr(pos + 1);
+                            cur = buffs.at(i - 1).substr(0, pos);
+                        execute(array_clients.at(i - 1), cur, i, &socket_bot);
+                        if (pos > 0 && buffs[i-1][pos - 1] == '\r')
+                        {
+                            cur = buffs[i-1].substr(0, pos - 1);
+                            buffs[i-1] = buffs[i-1].substr(pos + 1);
+                        }
+                        else
+                        {
+                            cur = buffs[i-1].substr(0, pos);
+                            buffs[i-1] = buffs[i-1].substr(pos + 1);
+                        }
                     }
-                    show_clients();
-                    // std::cout << "/*/*/*/**/*"<< std::endl;
                 }
                 else if (bytes_readen == 0)
                 {
@@ -1520,5 +1528,3 @@ void Server::run()
         }
     }
 }
-
-

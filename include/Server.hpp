@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/08 22:47:49 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/14 14:36:32 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,10 +39,10 @@ class Server
         int server_fd;   
         std::string port;        
         std::string pw;          
-        long server_start_time;
     public:
         int size_cl;
-        std::vector<struct pollfd> poll_fds;  
+        std::vector<struct pollfd> poll_fds;
+        std::vector<std::string> buffs;
         Server(std::string port, std::string passw);
         ~Server() {};
         void setup(); 
