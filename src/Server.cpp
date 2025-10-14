@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/14 14:42:57 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/14 15:38:05 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -605,7 +605,7 @@ void    kicking(Client *client, int i, int j, std::string &reason)
     }
 }
 
-void    kick(Client *client, std::string &message, std::vector<std::string> &array_params)
+void    kick(Client *client, std::string &message)
 {
     std::string text;
     std::string name_channel;
@@ -614,12 +614,6 @@ void    kick(Client *client, std::string &message, std::vector<std::string> &arr
     int I_CH = -1;
     int I_NK = -1;
 
-    if (array_params.size() > 3)
-    {
-        text = ":localhost 461 " + client->nickname + " KICK :Too many parameters\r\n";
-        send(client->socket_fd, text.c_str(), text.length(), 0);
-        return ;
-    }
     parse_kick_parameters(message, name_channel, nick_to_kick, reason);
     if (message == "")
     {
@@ -945,7 +939,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if (cmd == "JOIN")
         join(client, message, array_params);//join 100% well
     else if (cmd == "KICK")
-        kick(client, message, array_params);
+        kick(client, message);
     else if (cmd == "INVITE")
         invite(client, message);
     else if(cmd == "QUIT")
@@ -1512,6 +1506,7 @@ void Server::run()
                             cur = buffs[i-1].substr(0, pos);
                             buffs[i-1] = buffs[i-1].substr(pos + 1);
                         }
+                        show_clients();
                     }
                 }
                 else if (bytes_readen == 0)

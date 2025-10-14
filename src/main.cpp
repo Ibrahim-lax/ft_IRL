@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/09/01 16:05:37 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/10/14 14:52:07 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,10 @@
 //     s.run();
 //     return 0;
 // }
+// void l() {system("leaks Irc_server");}
 int main(int ac, char *av[])
 {
+    // atexit(l);
     signal(SIGPIPE, SIG_IGN);
 
     if (ac < 3) {
@@ -33,5 +35,6 @@ int main(int ac, char *av[])
     Server s(av[1], av[2]);
     s.setup();
     s.run();
+    
     return 0;
 }
