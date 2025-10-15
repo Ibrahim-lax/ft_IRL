@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/14 15:38:05 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/15 22:16:04 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -799,7 +799,7 @@ bool    is_channel_exist(std::string &name_channel, int *I_CH, Client *client)
         }
     }
     std::string text;
-    text = ":localhost 403 " + client->nickname + " " + name_channel + " :No such channel\r\n";
+    text = ":localhost 403 " + client->nickname + " #" + name_channel + " :No such channel\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
     return false;
 }
@@ -811,7 +811,7 @@ bool    require_admin(Client *client, int I_CH)
         if (!Server::channels[I_CH]->isOperator(client->socket_fd))
         {
             std::string text;
-            text = ":localhoszt 482 " + client->nickname + " " + Server::channels[I_CH]->name + " :You're not channel operator\r\n";
+            text = ":localhost 482 " + client->nickname + " #" + Server::channels[I_CH]->name + " :You're not channel operator\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -826,7 +826,7 @@ bool    is_already_joined(Client *client, std::string &nick_to_invite, int I_CH)
         if (Server::channels[I_CH]->clients[i]->nickname == nick_to_invite)
         {
             std::string text;
-            text = ":localhost 443 " + client->nickname + " " + nick_to_invite + " " + Server::channels[I_CH]->name + " :is already on channel\r\n";
+            text = ":localhost 443 " + client->nickname + " " + nick_to_invite + " #" + Server::channels[I_CH]->name + " :is already on channel\r\n";
             send(client->socket_fd, text.c_str(), text.length(), 0);
             return true;
         }
@@ -834,7 +834,7 @@ bool    is_already_joined(Client *client, std::string &nick_to_invite, int I_CH)
     return false;
 }
 
-void invite(Client *client, std::string &message)
+void invite(Client *client, std::string &message, std::vector<std::string> &array_params)
 {
     std::string text;
     std::string nick_to_invite;
@@ -842,20 +842,23 @@ void invite(Client *client, std::string &message)
     int         I_CH = -1;
     int         I_NK = -1;
 
+    if (array_params.size() > 2)
+    {
+        text = ":localhost 461 " + client->nickname + " INVITE :Too many parameters\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+        return ;
+    }
     parse_invite_parameters(message, nick_to_invite, name_channel);
     if (message == "")
     {
-        text = "ERR_NEEDMOREPARAMS\r\n";
         text = ":localhost 461 " + client->nickname + " INVITE :Not enough parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         return ;
     }
     if (!is_valid_mask(name_channel, client))
         return ;
-
     if (!is_channel_exist(name_channel, &I_CH, client))
         return ;
-        
     if (!is_nick_exist(nick_to_invite, client, &I_NK))
         return ;
     if (!is_client_joined(client, I_CH))
@@ -865,11 +868,11 @@ void invite(Client *client, std::string &message)
     if (is_already_joined(client, nick_to_invite, I_CH))
         return ;
 
-    Client *target = Server::array_clients[I_NK];
+    Client  *client_to_invite = Server::array_clients[I_NK];
     Channel *channel = Server::channels[I_CH];
 
-    if (!already_invited(channel, target))
-        target->invited_channels.push_back(channel);
+    if (!already_invited(channel, client_to_invite))
+        client_to_invite->invited_channels.push_back(channel);
 
     text = ": 341 " + client->nickname + " " + nick_to_invite + " #" + channel->name + "\r\n";
     send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -941,7 +944,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if (cmd == "KICK")
         kick(client, message);
     else if (cmd == "INVITE")
-        invite(client, message);
+        invite(client, message, array_params);
     else if(cmd == "QUIT")
         quit(client, message, server, i); // add commands here yosabir
     else if(cmd == "TOPIC")
