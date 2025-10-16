@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/15 22:16:04 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/16 17:50:34 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,17 +91,6 @@ bool client_joined_channel(Client *client, size_t i)
     return false;
 }
 
-bool is_banned_channel(Client *client, std::string &channel_name)
-{
-    for (size_t i = 0; i < client->banned_channels.size(); i++)
-    {
-        if (client->banned_channels[i]->name == channel_name)
-            return true;
-    }
-    return false;
-}
-
-
 bool    key_check(Client *client, std::string &key, int socket_fd, Channel *channel)
 {
     std::string text;
@@ -136,10 +125,7 @@ bool    is_client_invited(Channel *channel, Client *client)
     for (size_t i = 0; i < client->invited_channels.size(); i++)
     {
         if (client->invited_channels[i]->name == channel->name)
-        {
-            un_invite(client, channel);
             return true;
-        }
     }
     return false;
 }
@@ -241,6 +227,7 @@ bool    exist_channel(std::string &name, Client *client, std::string &key)
                 return true;
             if (invite_only(Server::channels[i], client))
                 return true;
+            un_invite(client, Server::channels[i]);
             Channel *channel = Server::channels[i];
             std::string text;
             client->channelsjoined.push_back(channel);
@@ -382,29 +369,6 @@ void    join(Client *client, std::string &message, std::vector<std::string> &arr
             join_channel(client, array_channels[i], key);
     }
 }
-
-//////////////////////////////////////////////////////////////////////
-// void    msg(Client &client, std::string message)
-// {
-//     std::string text;
-//     std::string name_channel = "channel2";
-//     for (int i = 0; i < Server::channels.size(); i++)
-//     {
-//         if (Server::channels[i].name == name_channel)
-//         {
-//             for (size_t j = 0; j < Server::channels[i].clients.size(); j++)
-//             {
-//                 if (Server::channels[i].clients[j].socket_fd != client.socket_fd)
-//                 {
-//                     text = client.nickname + ": " + message + "\r\n";
-//                     send(Server::channels[i].clients[j].socket_fd, text.c_str(), text.length(), 0);
-//                 }
-//             }
-//             return ;
-//         }
-//     }
-// }
-
 
 bool valid_channel(std::string &channel_name, Client *client, int *i)
 {
@@ -745,20 +709,6 @@ bool    is_invited_joined(Channel *channel, Client *client)
     return false;
 }
 
-void    un_banned_channel(Client *client, Channel *channel)
-{
-    for (unsigned long i = 0; i< client->banned_channels.size(); i++)
-    {
-        if (client->banned_channels[i]->name == channel->name)
-        {
-            client->banned_channels.erase(
-                std::remove(client->banned_channels.begin(), client->banned_channels.end(), channel),
-                client->banned_channels.end());
-            return ;
-        }   
-    }
-}
-
 void    parse_invite_parameters(std::string &message, std::string &nick_to_invite, std::string &name_channel)
 {
     int i = 0;
@@ -888,6 +838,21 @@ void    parse_quit_parameters(std::string &message, std::string &reason)
     if (!message[i])
         return ;
     reason = message.substr(i);
+    if (reason[0] == ':')
+        reason = reason.substr(1);
+}
+
+void    inform_quit(Client *client, std::string &string)
+{
+    for (size_t i = 0; i < client->channelsjoined.size(); i++)
+    {
+        for (size_t j = 0; j < client->channelsjoined[i]->clients.size(); j++)
+        {
+            if (client->channelsjoined[i]->clients[j]->socket_fd != client->socket_fd)
+                send(client->channelsjoined[i]->clients[j]->socket_fd, string.c_str(), string.length(), 0);
+        }
+    }
+    send(client->socket_fd, string.c_str(), string.length(), 0);
 }
 
 void    quit(Client *client, std::string message, Server *server, int i)
@@ -896,11 +861,12 @@ void    quit(Client *client, std::string message, Server *server, int i)
     std::string reason;
 
     parse_quit_parameters(message, reason);
+    text = ":" + client->nickname + "!" + client->username + "@localhost QUIT";
     if (reason == "")
-        text = ": " + client->nickname + " has disconnected\r\n";
+        text += "\r\n";
     else
-        text = ": " + client->nickname + " has disconnected a cause: " + reason + "\r\n";
-    send(client->socket_fd, text.c_str(), text.length(), 0);
+        text += " :" + reason + "\r\n";
+    inform_quit(client, text);
     close(server->poll_fds[i].fd);
     server->poll_fds.erase(server->poll_fds.begin() + i);
     delete_client(i);
@@ -940,11 +906,11 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     if (cmd == "NICK")
         nickname(client, array_params, fd_bot);
     else if (cmd == "JOIN")
-        join(client, message, array_params);//join 100% well
+        join(client, message, array_params);
     else if (cmd == "KICK")
         kick(client, message);
     else if (cmd == "INVITE")
-        invite(client, message, array_params);
+        invite(client, message, array_params);//invite 100% well
     else if(cmd == "QUIT")
         quit(client, message, server, i); // add commands here yosabir
     else if(cmd == "TOPIC")
@@ -1217,14 +1183,14 @@ void show_clients()
         }
 
         std::cout << "-----------------------------" << std::endl;
-        std::cout << "\tBanned Channels: ";
-        if (Server::array_clients[i]->banned_channels.empty())
+        std::cout << "\tInvited Channels: ";
+        if (Server::array_clients[i]->invited_channels.empty())
             std::cout << "None" << std::endl;
         else
         {
-            for (size_t j = 0; j < Server::array_clients[i]->banned_channels.size(); j++)
+            for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
             {
-                std::cout << Server::array_clients[i]->banned_channels[j]->name << " ";
+                std::cout << Server::array_clients[i]->invited_channels[j]->name << " ";
             }
             std::cout << std::endl;
         }
@@ -1232,6 +1198,9 @@ void show_clients()
     }
 
     show_channels();
+    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
+    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
+    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
 }
 
 size_t skip_spaces(std::string message, size_t i)
@@ -1320,40 +1289,6 @@ bool channel_has_one_user(Channel *channel)
     return false;
 }
 
-void    erase_channel_from_banned_channels(Channel *channel)
-{
-    for (size_t i = 0; i < Server::array_clients.size(); i++)
-    {
-        for (size_t j = 0; j < Server::array_clients[i]->banned_channels.size(); j++)
-        {
-            if (Server::array_clients[i]->banned_channels[j]->name == channel->name)
-            {
-                Server::array_clients[i]->banned_channels.erase(
-                    std::remove(Server::array_clients[i]->banned_channels.begin(),
-                                Server::array_clients[i]->banned_channels.end(), channel),
-                    Server::array_clients[i]->banned_channels.end());
-            }
-        }
-    }
-}
-
-void    erase_channel_from_invited_channels(Channel *channel)
-{
-    for (size_t i = 0; i < Server::array_clients.size(); i++)
-    {
-        for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
-        {
-            if (Server::array_clients[i]->invited_channels[j]->name == channel->name)
-            {
-                Server::array_clients[i]->invited_channels.erase(
-                    std::remove(Server::array_clients[i]->invited_channels.begin(),
-                                Server::array_clients[i]->invited_channels.end(), channel),
-                    Server::array_clients[i]->invited_channels.end());
-            }
-        }
-    }
-}
-
 void    remove_channel(Channel *channel)
 {
     for (unsigned long i = 0; i < Server::channels.size(); i++)
@@ -1363,21 +1298,11 @@ void    remove_channel(Channel *channel)
             Server::channels.erase(
                 std::remove(Server::channels.begin(), Server::channels.end(), Server::channels[i]),
                 Server::channels.end());
-            erase_channel_from_invited_channels(channel);
+            remove_invited(channel);
             channel->clients.clear();
             delete channel;
             return ;
         }
-    }
-}
-
-void    reclame_channel(Channel *channel, Client *client)
-{
-    std::string text;
-    for (size_t i = 0; i < channel->clients.size(); i++)
-    {
-        text = client->nickname + " has left the channel: " + channel->name + "\r\n";
-        send(channel->clients[i]->socket_fd, text.c_str(), text.length(), 0);
     }
 }
 
@@ -1390,16 +1315,13 @@ void    handle_channels(int i)
         if (channel_has_one_user(channel))
         {
             remove_channel(channel);
-            std::cout << "channel has only one user, removing it" << std::endl;
             Server::array_clients[i - 1]->channelsjoined.clear();
-            Server::array_clients[i - 1]->invited_channels.clear();//cool
-            Server::array_clients[i - 1]->banned_channels.clear();//useless
+            Server::array_clients[i - 1]->invited_channels.clear();
             return ;
         }
-        reclame_channel(channel, Server::array_clients[i - 1]);
-            channel->clients.erase(
-                std::remove(channel->clients.begin(), channel->clients.end(), Server::array_clients[i - 1]),
-                channel->clients.end());
+        channel->clients.erase(
+            std::remove(channel->clients.begin(), channel->clients.end(), Server::array_clients[i - 1]),
+            channel->clients.end());
         if (channel->isOperator(Server::array_clients[i - 1]->socket_fd))
         {
             if (channel->operators.size() > 1)
@@ -1415,18 +1337,16 @@ void    handle_channels(int i)
     }
     Server::array_clients[i - 1]->channelsjoined.clear();
     Server::array_clients[i - 1]->invited_channels.clear();
-    Server::array_clients[i - 1]->banned_channels.clear();   
 }
 
 void    delete_client(int i)
 {
-    std::cout << "Deleting client " << i << std::endl;
-    Client *client = Server::array_clients[i - 1];
+    Client *delet_client = Server::array_clients[i - 1];
     handle_channels(i);
     Server::array_clients.erase(
         std::remove(Server::array_clients.begin(), Server::array_clients.end(), Server::array_clients[i - 1]),
         Server::array_clients.end());
-    delete client;
+    delete delet_client;
 }
 
 void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
@@ -1493,7 +1413,6 @@ void Server::run()
                     unsigned long pos = 0;
                     while ((pos = buffs.at(i - 1).find_first_of("\n")) != (unsigned long) std::string::npos)
                     {
-                        std::cout << " \n \n \n <<<entering processing of command scope>>> \n \n \n";
                         if (buffs.at(i - 1)[pos - 1] == '\r')
                             cur = buffs.at(i - 1).substr(0, pos - 1);
                         else
