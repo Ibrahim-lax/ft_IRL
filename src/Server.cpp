@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/16 17:50:34 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/16 21:56:12 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -910,7 +910,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if (cmd == "KICK")
         kick(client, message);
     else if (cmd == "INVITE")
-        invite(client, message, array_params);//invite 100% well
+        invite(client, message, array_params);
     else if(cmd == "QUIT")
         quit(client, message, server, i); // add commands here yosabir
     else if(cmd == "TOPIC")
@@ -991,6 +991,15 @@ std::vector<std::string> ft_split(std::string &parameters)
     return result;
 }
 
+std::string current_time()
+{
+    std::time_t current_time = std::time(nullptr);
+    std::tm* local_time = std::localtime(&current_time);
+    char buffer[100];
+    std::strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S", local_time);
+    return std::string(buffer);
+}
+
 void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password, int *fd_bot, std::vector<std::string> &array_params)
 {
     std::string text;
@@ -1019,11 +1028,11 @@ void    unregister_cmnd(Client *client,std::string &cmd, std::string message, st
     if (client->is_auth && client->is_nickname && client->is_username)
     {
         client->is_registered = true;
-        text = ":localhost 001 " + client->nickname + " Welcome to the IRC Network, " + client->nickname + "!" + client->username + "@localhost\r\n";
+        text = ":localhost 001 " + client->nickname + " :Welcome to the IRC Network " + client->nickname + "!" + client->username + "@localhost\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         text = ":localhost 002 " + client->nickname + " :Your host is localhost, running version 1.0\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
-        text = ":localhost 003 " + client->nickname + " :This server was created XX XX XX XX\r\n";
+        text = ":localhost 003 " + client->nickname + " :This server was created " + current_time() + "\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         std::cout << "CLIENT CONNECTED, ON FD: " << client->socket_fd << std::endl;
     }
