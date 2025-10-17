@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/16 21:56:12 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/17 15:55:00 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1000,6 +1000,20 @@ std::string current_time()
     return std::string(buffer);
 }
 
+bool is_exist_cmd(std::string &cmd)
+{
+    std::string commands[] = {
+        "JOIN", "KICK", "INVITE", "QUIT", "TOPIC",
+        "PRIVMSG", "MODE", "PONG"
+    };
+    for (size_t i = 0; i < commands->length(); i++)
+    {
+        if (cmd == commands[i])
+            return true;
+    }
+    return false;
+}
+
 void    unregister_cmnd(Client *client,std::string &cmd, std::string message, std::string password, int *fd_bot, std::vector<std::string> &array_params)
 {
     std::string text;
@@ -1020,9 +1034,14 @@ void    unregister_cmnd(Client *client,std::string &cmd, std::string message, st
             return;
         username(client, message);
     }
-    else
+    else if (is_exist_cmd(cmd))
     {
         text = ":localhost 451 " + NICK + " :You have not registered\r\n";
+        send(client->socket_fd, text.c_str(), text.length(), 0);
+    }
+    else
+    {
+        text = ":localhost 421 " + NICK + " " + cmd + " :Unknown command\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
     }
     if (client->is_auth && client->is_nickname && client->is_username)
@@ -1043,7 +1062,7 @@ bool    password_check(Client *client, std::vector<std::string> array_params, st
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
     int socket_fd = client->socket_fd;
-    if (array_params.size() > 1)
+    if (array_params.size() > 1)//77
     {
         text = ":localhost 461 " + NICK + " PASS :Too many parameters\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
@@ -1060,7 +1079,7 @@ bool    password_check(Client *client, std::vector<std::string> array_params, st
         text = ":localhost 464 " + NICK + " :Password incorrect\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
     }
-    if (client->is_bot)
+    if (client->is_bot)//77
     {
         text = ":localhost 001  PASS IS PASS\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
@@ -1089,7 +1108,7 @@ void    nickname(Client *client, std::vector<std::string> array_params, int *fd_
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
-    if (array_params.size() > 1)
+    if (array_params.size() > 1)//77
     {
         text = ":localhost 461 " + NICK + " NICK :Too many parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -1097,7 +1116,7 @@ void    nickname(Client *client, std::vector<std::string> array_params, int *fd_
     }
     std::string nick = array_params[0];
 
-    if (client->is_bot == false && nick == "[BOT]")
+    if (client->is_bot == false && nick == "[BOT]")//77
     {
         text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname (this nickname belongs only to bots)\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -1123,7 +1142,7 @@ void    nickname(Client *client, std::vector<std::string> array_params, int *fd_
         client->nickname = nick;
         client->is_nickname = true;
     }
-    if (client->is_bot)
+    if (client->is_bot)//77
     {
         text = ":localhost 001  nickname is good\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
