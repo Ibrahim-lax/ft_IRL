@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/17 15:55:00 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/17 16:08:10 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -347,7 +347,7 @@ void    join(Client *client, std::string &message, std::vector<std::string> &arr
     std::vector<std::string> array_keys;
     std::string key;
     
-    if (array_params.size() > 2)
+    if (array_params.size() > 2)//77
     {
         text = ":localhost 461 " + client->nickname + " JOIN :Too many parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
