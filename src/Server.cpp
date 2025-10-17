@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/17 16:08:10 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/17 16:36:24 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,15 +52,23 @@ void Server::setup()
         std::cerr << "ERROR2\n" << gai_strerror(this->server_fd) << std::endl;
         exit(1);
     }
+    if (fcntl(this->server_fd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        std::cerr << "ERROR2\n" << gai_strerror(this->server_fd) << std::endl;
+        close(this->server_fd);
+        exit(1);
+    }
     int opt = 1;
     if (setsockopt(this->server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0 )
     {
         std::cerr << "ERROR3\n" << std::endl;
+        close(this->server_fd);
         exit(1);
     }
     if ((ret = bind(this->server_fd, res->ai_addr, res->ai_addrlen)) < 0)
     {
         std::cerr << "ERROR4\n" << gai_strerror(ret) << std::endl;
+        close(this->server_fd);
         exit(1);
     }
     if (listen(this->server_fd, 128) < 0)
@@ -1404,7 +1412,7 @@ void Server::run()
     int socket_bot = -1;
     while (true)
     {
-        int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 10);
+        int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 1);
         if (ready < 0)
         {
             std::cerr << "problem with poll"<<std::endl;
