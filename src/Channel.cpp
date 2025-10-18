@@ -3,14 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/10/11 14:27:42 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/18 13:35:34 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
+#include <sstream>
+
 
 void topic(Client *client, std::string &message, Server *server)
 {
@@ -105,33 +107,42 @@ void topic(Client *client, std::string &message, Server *server)
     }
 }
 
-
-
 void privmsg(Client *client, std::string &message, Server *server)
 {
     size_t i = 0;
-    while (i < message.size() && message[i] == ' ')
-        i++; // skip spaces
 
-    // extract targets (comma-separated)
+    // skip leading spaces
+    while (i < message.size() && message[i] == ' ')
+        i++;
+
+    // extract targets
     std::string targets;
     while (i < message.size() && message[i] != ' ')
-    {
-        targets += message[i];
-        i++;
-    }
+        targets += message[i++];
 
+    // skip spaces
     while (i < message.size() && message[i] == ' ')
-        i++; // skip spaces
+        i++;
 
     // extract message text
     std::string msgText;
     if (i < message.size())
     {
         msgText = message.substr(i);
+        // only remove ':' if not a CTCP/DCC message
+        if (!msgText.empty() && msgText[0] == ':')
+            msgText.erase(0, 1);
     }
 
-    // if no message → error
+    // error: no recipient
+    if (targets.empty())
+    {
+        std::string reply = "411 " + client->nickname + " :No recipient given (PRIVMSG)\r\n";
+        send(client->socket_fd, reply.c_str(), reply.length(), 0);
+        return;
+    }
+
+    // error: no text
     if (msgText.empty())
     {
         std::string reply = "412 " + client->nickname + " :No text to send\r\n";
@@ -139,33 +150,28 @@ void privmsg(Client *client, std::string &message, Server *server)
         return;
     }
 
+    // detect CTCP/DCC message (must start and end with ASCII 1)
+    bool is_ctcp = false;
+    if (msgText.size() > 2 && msgText[0] == '\x01' && msgText[msgText.size() - 1] == '\x01')
+        is_ctcp = true;
+
     // split targets by comma
-    std::string::size_type start = 0;
-    std::string::size_type end = 0;
-    while (end != std::string::npos)
+    std::string::size_type start = 0, end;
+    while ((end = targets.find(',', start)) != std::string::npos || start < targets.size())
     {
-        end = targets.find(',', start);
-        std::string target;
-        if (end == std::string::npos)
-            target = targets.substr(start);
-        else
-            target = targets.substr(start, end - start);
-
-        start = (end == std::string::npos) ? end : end + 1;
-
+        std::string target = (end == std::string::npos) ? targets.substr(start)
+                                                        : targets.substr(start, end - start);
+        start = (end == std::string::npos) ? targets.size() : end + 1;
         if (target.empty())
             continue;
 
         // PRIVMSG to channel
         if (target[0] == '#')
         {
-            std::string chanName = target.substr(1); // remove '#'
-            Channel *channel = 0;
-
-            // find channel
+            Channel *channel = NULL;
             for (size_t j = 0; j < server->channels.size(); j++)
             {
-                if (server->channels[j]->name == chanName)
+                if (server->channels[j]->name == target.substr(1))
                 {
                     channel = server->channels[j];
                     break;
@@ -174,12 +180,11 @@ void privmsg(Client *client, std::string &message, Server *server)
 
             if (!channel)
             {
-                std::string reply = "403 " + target + " :No such channel\r\n";
+                std::string reply = "403 " + client->nickname + " " + target + " :No such channel\r\n";
                 send(client->socket_fd, reply.c_str(), reply.length(), 0);
                 continue;
             }
 
-            // check if sender is in channel
             bool inChannel = false;
             for (size_t j = 0; j < channel->clients.size(); j++)
             {
@@ -189,17 +194,15 @@ void privmsg(Client *client, std::string &message, Server *server)
                     break;
                 }
             }
+
             if (!inChannel)
             {
-                std::string reply = "442 " + target + " :You're not on that channel\r\n";
+                std::string reply = "442 " + client->nickname + " " + target + " :You're not on that channel\r\n";
                 send(client->socket_fd, reply.c_str(), reply.length(), 0);
                 continue;
             }
 
-            // build broadcast message
-            std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
-
-            // send to all except sender
+            std::string notify = ":" + client->nickname + "!" + client->username + "@localhost PRIVMSG " + target + " :" + msgText + "\r\n";
             for (size_t j = 0; j < channel->clients.size(); j++)
             {
                 if (channel->clients[j] != client)
@@ -208,7 +211,7 @@ void privmsg(Client *client, std::string &message, Server *server)
         }
         else // PRIVMSG to nickname
         {
-            Client *receiver = 0;
+            Client *receiver = NULL;
             for (size_t j = 0; j < server->array_clients.size(); j++)
             {
                 if (server->array_clients[j]->nickname == target)
@@ -220,17 +223,29 @@ void privmsg(Client *client, std::string &message, Server *server)
 
             if (!receiver)
             {
-                std::string reply = "401 " + target + " :No such nick\r\n";
+                std::string reply = "401 " + client->nickname + " " + target + " :No such nick\r\n";
                 send(client->socket_fd, reply.c_str(), reply.length(), 0);
                 continue;
             }
 
-            // build direct message
-            std::string notify = ":" + client->nickname + " PRIVMSG " + target + " :" + msgText + "\r\n";
+            // Send CTCP (DCC) or normal PRIVMSG properly formatted
+            std::string notify = ":" + client->nickname + "!" + client->username + "@localhost PRIVMSG " + target + " :";
+            if (is_ctcp)
+                notify += msgText; // keep exact CTCP content
+            else
+                notify += msgText;
+            notify += "\r\n";
+
             send(receiver->socket_fd, notify.c_str(), notify.length(), 0);
         }
+
+        if (end == std::string::npos)
+            break;
     }
 }
+
+
+
 
 void mode(Client *client, std::string &message, Server *server)
 {
@@ -326,7 +341,6 @@ void mode(Client *client, std::string &message, Server *server)
         send(client->socket_fd, reply.c_str(), reply.length(), 0);
         return;
     }
-
     // apply modes
     bool add = true;
     for (size_t j = 0; j < modeStr.size(); j++)
@@ -395,6 +409,13 @@ void mode(Client *client, std::string &message, Server *server)
                     channel->is_limit_set = false;
                 }
                 break;
+            default:
+            {
+                std::string reply = ": 472 " + client->nickname +
+                            " " + c + " :Unknown MODE flag\r\n";
+                send(client->socket_fd, reply.c_str(), reply.length(), 0);
+                break;
+            }
         }
     }
 
