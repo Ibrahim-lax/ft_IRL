@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/17 16:36:24 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/18 15:56:04 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -355,7 +355,7 @@ void    join(Client *client, std::string &message, std::vector<std::string> &arr
     std::vector<std::string> array_keys;
     std::string key;
     
-    if (array_params.size() > 2)//77
+    if (array_params.size() > 2)
     {
         text = ":localhost 461 " + client->nickname + " JOIN :Too many parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -832,10 +832,10 @@ void invite(Client *client, std::string &message, std::vector<std::string> &arra
     if (!already_invited(channel, client_to_invite))
         client_to_invite->invited_channels.push_back(channel);
 
-    text = ": 341 " + client->nickname + " " + nick_to_invite + " #" + channel->name + "\r\n";
-    send(client->socket_fd, text.c_str(), text.length(), 0);
-    text = ":localhost INVITE " + nick_to_invite + " #" + channel->name + "\r\n";
+    text = ":" + client->nickname + "!" + client->username + "@localhost INVITE " + nick_to_invite + " #" + channel->name + "\r\n";
     send(Server::array_clients[I_NK]->socket_fd, text.c_str(), text.length(), 0);
+    text = ":localhost 341 " + client->nickname + " " + nick_to_invite + " #" + channel->name + "\r\n";
+    send(client->socket_fd, text.c_str(), text.length(), 0);
 }
 
 void    parse_quit_parameters(std::string &message, std::string &reason)
@@ -1070,7 +1070,7 @@ bool    password_check(Client *client, std::vector<std::string> array_params, st
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
     int socket_fd = client->socket_fd;
-    if (array_params.size() > 1)//77
+    if (array_params.size() > 1)
     {
         text = ":localhost 461 " + NICK + " PASS :Too many parameters\r\n";
         send(socket_fd, text.c_str(), text.length(), 0);
@@ -1116,7 +1116,7 @@ void    nickname(Client *client, std::vector<std::string> array_params, int *fd_
 {
     std::string text;
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
-    if (array_params.size() > 1)//77
+    if (array_params.size() > 1)
     {
         text = ":localhost 461 " + NICK + " NICK :Too many parameters\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
