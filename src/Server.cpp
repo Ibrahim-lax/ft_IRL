@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/18 15:56:04 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/19 22:43:51 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,28 +40,32 @@ void Server::setup()
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_STREAM;
     struct addrinfo *res;
-    int    ret = getaddrinfo(NULL, "6667", &hint, &res);
+    int    ret = getaddrinfo("127.0.0.1", this->port.c_str(), &hint, &res);
     if (ret < 0)
     {
         std::cerr << "ERROR1\n" << std::endl;
+        freeaddrinfo(res);
         exit(1);
     }
     this->server_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (this->server_fd < 0)
     {
         std::cerr << "ERROR2\n" << gai_strerror(this->server_fd) << std::endl;
+        freeaddrinfo(res);
         exit(1);
     }
     if (fcntl(this->server_fd, F_SETFL, O_NONBLOCK) < 0)
     {
         std::cerr << "ERROR2\n" << gai_strerror(this->server_fd) << std::endl;
         close(this->server_fd);
+        freeaddrinfo(res);
         exit(1);
     }
     int opt = 1;
     if (setsockopt(this->server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0 )
     {
         std::cerr << "ERROR3\n" << std::endl;
+        freeaddrinfo(res);
         close(this->server_fd);
         exit(1);
     }
@@ -69,19 +73,21 @@ void Server::setup()
     {
         std::cerr << "ERROR4\n" << gai_strerror(ret) << std::endl;
         close(this->server_fd);
+        freeaddrinfo(res);
         exit(1);
     }
     if (listen(this->server_fd, 128) < 0)
     {
         std::cerr << "ERROR5\n" << std::endl;
         close(this->server_fd);
+        freeaddrinfo(res);
         exit(1);
     }
     struct pollfd sv; 
     sv.fd = this->get_serv_fd();
     sv.events = POLLIN;
     this->poll_fds.push_back(sv);
-    std::cout << "Server is listening on port 6667\n";
+    std::cout << "Server is listening on port " << this->port << std::endl;
     freeaddrinfo(res);
 }
 
