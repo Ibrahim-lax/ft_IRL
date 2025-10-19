@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/19 22:43:51 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/19 22:49:40 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ Server::Server(std::string port, std::string passw)
     this->port = port;
     this->pw = passw;
     this->size_cl = 0;
+    this->password_empty = false;
 }
 size_t skip_spaces(std::string message, size_t i);
 

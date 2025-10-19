@@ -3,7 +3,7 @@ NAME	=	Irc_server
 NAME_BONUS = Bot
 
 CMD		=	c++
-FLAGS	=	-Wall -Werror -Wextra -std=c++98
+FLAGS	=	-Wall -Werror -Wextra -std=c++98 
 
 SRCS	=	src/Channel.cpp \
 			src/Server.cpp \
