@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/20 19:51:38 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/20 20:09:25 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -895,10 +895,8 @@ void    unknown_cmd(Client *client, std::string cmd)
 }
 
 
-
 void    bot_cmd(Client *client, std::string &cmd, Server *server, int *fd_bot)
 {
-    // std::string bot_response = ":localhost 001 A " + server->handlebotCommand(cmd);
     (void)server;
     std::string bot_request = client->nickname + "::" + cmd;
     int bot_fd = *fd_bot;
@@ -926,7 +924,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if (cmd == "INVITE")
         invite(client, message, array_params);
     else if(cmd == "QUIT")
-        quit(client, message, server, i); // add commands here yosabir
+        quit(client, message, server, i);
     else if(cmd == "TOPIC")
         topic(client, message, server);
     else if(cmd == "PRIVMSG")
@@ -969,7 +967,6 @@ std::string command(std::string &message, size_t *index)
         message = message.substr(0, j);
     return cmd;
 }
-#include <sstream>
 
 std::vector<std::string> ft_split(std::string &parameters)
 {
@@ -1388,8 +1385,7 @@ void    delete_client(int i)
     Server::array_clients.erase(
         std::remove(Server::array_clients.begin(), Server::array_clients.end(), Server::array_clients[i - 1]),
         Server::array_clients.end());
-    (void)delet_client;
-    // delete delet_client;
+    delete delet_client;
 }
 
 void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
@@ -1433,11 +1429,16 @@ void Server::run()
                 std::cerr << "Error while accepting new client\n" << std::endl;
                 continue ;
             }
+            if (fcntl(client_fd, F_SETFL, O_NONBLOCK) < 0)
+            {
+                std::cerr << "ERROR\n" << gai_strerror(client_fd) << std::endl;
+                close(client_fd);
+                exit(1);
+            }
             size_cl++;
             std::cout << "client of socket <" << client_fd << "> CONNECTED" << std::endl;
             register_cl(&this->poll_fds, client_fd);
-            Client cl_st(client_fd);
-            array_clients.push_back(&cl_st);
+            array_clients.push_back(new Client(client_fd));
             std::string buf_client = "";
             buffs.push_back(buf_client);
         }
@@ -1472,7 +1473,7 @@ void Server::run()
                             cur = buffs[i-1].substr(0, pos);
                             buffs[i-1] = buffs[i-1].substr(pos + 1);
                         }
-                        show_clients();
+                        // show_clients();
                     }
                 }
                 else if (bytes_readen == 0)
