@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/20 20:09:25 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/20 20:12:44 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ void Server::setup()
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_STREAM;
     struct addrinfo *res;
-    int    ret = getaddrinfo("127.0.0.1", this->port.c_str(), &hint, &res);
+    int    ret = getaddrinfo("0.0.0.0", this->port.c_str(), &hint, &res);
     if (ret < 0)
     {
         std::cerr << "ERROR1\n" << std::endl;
