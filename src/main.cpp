@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/19 22:50:57 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/19 23:28:16 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,27 @@
 //     return 0;
 // }
 // void l() {system("leaks Irc_server");}
+bool isNumeric(const std::string &str)
+{
+    if (str.empty())
+        return false;
+
+    size_t i = 0;
+    if (str[0] == '-') // skip minus sign
+    {
+        if (str.size() == 1) // only "-" is invalid
+            return false;
+        i = 1;
+    }
+
+    for (; i < str.size(); ++i)
+    {
+        if (!std::isdigit(static_cast<unsigned char>(str[i])))
+            return false;
+    }
+
+    return true;
+}
 int main(int ac, char *av[])
 {
     // atexit(l);
@@ -32,15 +53,24 @@ int main(int ac, char *av[])
         return 1;
     }
     std::string port = av[1];
+    if (isNumeric(port) == false)
+    {
+        std::cerr << "error : <port> is not numeric" << std::endl;
+        return 1;
+    }
     std::string pw = av[2];
-    
+    long long port_num = atol(av[1]);
+    if (port_num < 1024 || port_num > 49100)
+    {
+        std::cerr << "error : <port> is out of range" << std::endl;
+        return 1;
+    }
     if (port.size() == 0)
     {
         std::cerr << "error : <port> cant be empty" << std::endl;
         return 1;
     }
     Server s(av[1], av[2]);
-    
     if (pw.size() == 0)
         s.password_empty = true;
     else
