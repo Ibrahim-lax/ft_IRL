@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/20 20:12:44 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/21 21:41:45 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1449,6 +1449,10 @@ void Server::run()
             {
                 memset(buf, 0, 513);
                 bytes_readen = recv(this->poll_fds.at(i).fd, &buf, sizeof(buf), 0);
+                if (bytes_readen < 0)
+                {
+                    std::cerr << "ERROR IN RECV()"<<std::endl;
+                    while (1);                }
                 if (bytes_readen > 0)
                 {
                     std::string str(buf);
