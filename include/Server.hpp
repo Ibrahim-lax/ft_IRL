@@ -6,7 +6,7 @@
 /*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/20 19:43:28 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/22 18:25:58 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,9 +41,10 @@ class Server
         std::string pw;          
     public:
         int size_cl;
-        std::vector<struct pollfd> poll_fds;
+        static std::vector<struct pollfd> poll_fds;
         std::vector<std::string> buffs;
         Server(std::string port, std::string passw);
+        static bool is_server_running;
         ~Server() {};
         void setup(); 
         void run(); 

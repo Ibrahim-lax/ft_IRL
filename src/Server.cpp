@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/21 21:41:45 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/10/22 18:28:08 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 
 std::vector<Channel*> Server::channels;
 std::vector<Client*> Server::array_clients;
+std::vector<struct pollfd> Server::poll_fds;
+bool Server::is_server_running = false;
 
 
 Server::Server(std::string port, std::string passw)
