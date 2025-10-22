@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/19 23:07:25 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/10/22 18:22:00 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 
 std::vector<Channel*> Server::channels;
 std::vector<Client*> Server::array_clients;
+std::vector<struct pollfd> Server::poll_fds;
+bool Server::is_server_running = false;
 
 
 Server::Server(std::string port, std::string passw)
@@ -1193,6 +1195,7 @@ void show_clients()
     for (int i = 0; i < (int)Server::array_clients.size(); i++)
     {
         std::cout << "Client " << i + 1 << ": " << std::endl;
+        std::cout << "address: " << Server::array_clients[i] << std::endl;
         std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
         std::cout << "\tNickname: [" << Server::array_clients[i]->nickname << "]" << std::endl;
         std::cout << "\tUsername: [" << Server::array_clients[i]->username << "]" << std::endl;
@@ -1214,7 +1217,8 @@ void show_clients()
             std::cout << std::endl;
             for (size_t j = 0; j < Server::array_clients[i]->channelsjoined.size(); j++)
             {
-                std::cout << "\t  - [" << Server::array_clients[i]->channelsjoined[j]->name << "]";
+                std::cout << "\t  - [" << Server::array_clients[i]->channelsjoined[j]->name << "]" << std::endl;
+                std::cout << "\t    address: " << Server::array_clients[i]->channelsjoined[j] << std::endl;
                 // Channel* ch = Server::array_clients[i]->channelsjoined[j];
                 // std::cout << "\t  - " << ch->name;
                 // if (!ch->topic.empty())
@@ -1384,11 +1388,14 @@ void    handle_channels(int i)
 
 void    delete_client(int i)
 {
+    if (Server::array_clients.empty())
+        return ;
     Client *delet_client = Server::array_clients[i - 1];
     handle_channels(i);
     Server::array_clients.erase(
         std::remove(Server::array_clients.begin(), Server::array_clients.end(), Server::array_clients[i - 1]),
         Server::array_clients.end());
+    std::cout << "freeing currently ..." << std::endl;
     delete delet_client;
 }
 
@@ -1408,6 +1415,7 @@ void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
 
 void Server::run()
 {
+    is_server_running = true;
     int client_fd;
     char buf[513];
     memset(buf, 0, 513);

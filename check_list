@@ -168,6 +168,9 @@ TO YOSABER:
 ME :
     ALL TEST ERROR MUST TESTED IN LIMECHAT
     test 2x01
+    test in limechat well 
+    && 
+    fix signals leaks bot
 
 -- BOT IN NICK ❌
 
@@ -187,3 +190,13 @@ START BY PASS  ✅
     KICK  ✅
     INVITE  ✅
     QUIT  ✅
+
+no leaks from nc
+PROTECT EXCEPTIONS & UNDIFINED BEHAVIORS
+
+
+
+
+ER
+libc++abi.dylib: terminating with uncaught exception of type std::out_of_range: basic_string
+[1]    6271 abort      ./Irc_server 6667 123

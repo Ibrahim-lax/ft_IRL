@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/19 22:49:15 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/21 15:49:30 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,9 +40,10 @@ class Server
         std::string port;        
         std::string pw;          
     public:
+        static bool is_server_running;
         bool password_empty;
         int size_cl;
-        std::vector<struct pollfd> poll_fds;
+        static std::vector<struct pollfd> poll_fds;
         std::vector<std::string> buffs;
         Server(std::string port, std::string passw);
         ~Server() {};
