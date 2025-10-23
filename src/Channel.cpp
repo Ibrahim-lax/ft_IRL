@@ -6,7 +6,7 @@
 /*   By: yosabir <yosabir@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 15:18:31 by yosabir           #+#    #+#             */
-/*   Updated: 2025/10/21 21:05:18 by yosabir          ###   ########.fr       */
+/*   Updated: 2025/10/23 11:14:39 by yosabir          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,9 @@
 void topic(Client *client, std::string &message, Server *server)
 {
     size_t i = 0;
-    while (i < message.size() && message[i] == ' ') i++; // skip spaces
+    while (i < message.size() && message[i] == ' ') 
+        i++;
 
-    // extract channel
     std::string chanName;
     while (i < message.size() && message[i] != ' ')
     {
@@ -27,21 +27,19 @@ void topic(Client *client, std::string &message, Server *server)
         i++;
     }
 
-    while (i < message.size() && message[i] == ' ') i++; // skip spaces
+    while (i < message.size() && message[i] == ' ') 
+        i++;
 
-    // extract topic text (optional)
     std::string topicText;
     if (i < message.size() && message[i] == ':')
     {
-        i++; // skip ':'
-        topicText = message.substr(i); // everything after ':' is topic
+        i++;
+        topicText = message.substr(i);
     }
 
-    // remove '#' if present
     if (!chanName.empty() && chanName[0] == '#')
         chanName = chanName.substr(1);
 
-    // find channel
     Channel *channel = NULL;
     for (size_t j = 0; j < server->channels.size(); j++)
     {
@@ -59,7 +57,6 @@ void topic(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // check if client is in channel
     bool inChannel = false;
     for (size_t j = 0; j < channel->clients.size(); j++)
     {
@@ -77,7 +74,6 @@ void topic(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // if topic is empty → send current topic
     if (topicText.empty())
     {
         std::string reply = channel->topic.empty()
@@ -87,7 +83,6 @@ void topic(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // if topic restricted, check if client is an operator
     if (channel->is_topic_restricted && !channel->isOperator(client->socket_fd))
     {
         std::string reply = "482 #" + channel->name + " :You're not channel operator\r\n";
@@ -95,11 +90,9 @@ void topic(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // set new topic
     channel->topic = topicText;
     channel->topic_join_msg = true;
 
-    // broadcast to all clients in channel
     std::string notify = ":" + client->nickname + " TOPIC #" + channel->name + " :" + topicText + "\r\n";
     for (size_t j = 0; j < channel->clients.size(); j++)
     {
@@ -111,30 +104,24 @@ void privmsg(Client *client, std::string &message, Server *server)
 {
     size_t i = 0;
 
-    // skip leading spaces
     while (i < message.size() && message[i] == ' ')
         i++;
 
-    // extract targets
     std::string targets;
     while (i < message.size() && message[i] != ' ')
         targets += message[i++];
 
-    // skip spaces
     while (i < message.size() && message[i] == ' ')
         i++;
 
-    // extract message text
     std::string msgText;
     if (i < message.size())
     {
         msgText = message.substr(i);
-        // only remove ':' if not a CTCP/DCC message
         if (!msgText.empty() && msgText[0] == ':')
             msgText.erase(0, 1);
     }
 
-    // error: no recipient
     if (targets.empty())
     {
         std::string reply = "411 " + client->nickname + " :No recipient given (PRIVMSG)\r\n";
@@ -142,7 +129,6 @@ void privmsg(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // error: no text
     if (msgText.empty())
     {
         std::string reply = "412 " + client->nickname + " :No text to send\r\n";
@@ -150,12 +136,11 @@ void privmsg(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // detect CTCP/DCC message (must start and end with ASCII 1)
+    // detect CTCP/DCC message ASCII 1
     bool is_ctcp = false;
     if (msgText.size() > 2 && msgText[0] == '\x01' && msgText[msgText.size() - 1] == '\x01')
         is_ctcp = true;
 
-    // split targets by comma
     std::string::size_type start = 0, end;
     while ((end = targets.find(',', start)) != std::string::npos || start < targets.size())
     {
@@ -165,7 +150,6 @@ void privmsg(Client *client, std::string &message, Server *server)
         if (target.empty())
             continue;
 
-        // PRIVMSG to channel
         if (target[0] == '#')
         {
             Channel *channel = NULL;
@@ -209,7 +193,7 @@ void privmsg(Client *client, std::string &message, Server *server)
                     send(channel->clients[j]->socket_fd, notify.c_str(), notify.length(), 0);
             }
         }
-        else // PRIVMSG to nickname
+        else
         {
             Client *receiver = NULL;
             for (size_t j = 0; j < server->array_clients.size(); j++)
@@ -228,10 +212,10 @@ void privmsg(Client *client, std::string &message, Server *server)
                 continue;
             }
 
-            // Send CTCP (DCC) or normal PRIVMSG properly formatted
+            // Send CTCP (DCC)
             std::string notify = ":" + client->nickname + "!" + client->username + "@localhost PRIVMSG " + target + " :";
             if (is_ctcp)
-                notify += msgText; // keep exact CTCP content
+                notify += msgText;
             else
                 notify += msgText;
             notify += "\r\n";
@@ -253,7 +237,6 @@ void mode(Client *client, std::string &message, Server *server)
     while (i < message.size() && message[i] == ' ')
         i++;
 
-    // extract channel
     std::string chanName;
     while (i < message.size() && message[i] != ' ')
     {
@@ -264,7 +247,6 @@ void mode(Client *client, std::string &message, Server *server)
     while (i < message.size() && message[i] == ' ')
         i++;
 
-    // extract mode string
     std::string modeStr;
     while (i < message.size() && message[i] != ' ')
     {
@@ -275,16 +257,13 @@ void mode(Client *client, std::string &message, Server *server)
     while (i < message.size() && message[i] == ' ')
         i++;
 
-    // optional argument (password, limit, target nick for +o/-o)
     std::string modeArg;
     if (i < message.size())
         modeArg = message.substr(i);
 
-    // remove '#' if present
     if (!chanName.empty() && chanName[0] == '#')
         chanName = chanName.substr(1);
 
-    // find channel
     Channel *channel = NULL;
     for (size_t j = 0; j < server->channels.size(); j++)
     {
@@ -302,7 +281,6 @@ void mode(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // check if client is in channel
     bool inChannel = false;
     for (size_t j = 0; j < channel->clients.size(); j++)
     {
@@ -320,7 +298,6 @@ void mode(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // if no mode string → show current modes
     if (modeStr.empty())
     {
         std::string modes = "+";
@@ -334,14 +311,12 @@ void mode(Client *client, std::string &message, Server *server)
         return;
     }
 
-    // only operator can change modes
     if (!channel->isOperator(client->socket_fd))
     {
         std::string reply = "482 #" + channel->name + " :You're not channel operator\r\n";
         send(client->socket_fd, reply.c_str(), reply.length(), 0);
         return;
     }
-    // apply modes
     bool add = true;
     for (size_t j = 0; j < modeStr.size(); j++)
     {
@@ -390,7 +365,7 @@ void mode(Client *client, std::string &message, Server *server)
                         if (add)
                             channel->addOperator(target->socket_fd);
                         else
-                            channel->removeOperator(target->socket_fd); // creator never removed
+                            channel->removeOperator(target->socket_fd);
                     }
                 }
                 break;
@@ -419,7 +394,6 @@ void mode(Client *client, std::string &message, Server *server)
         }
     }
 
-    // broadcast mode change
     std::string notify = ":" + client->nickname + " MODE #" + channel->name + " " + modeStr;
     if (!modeArg.empty())
         notify += " " + modeArg;
