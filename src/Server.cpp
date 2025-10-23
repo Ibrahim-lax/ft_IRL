@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/22 21:43:27 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 13:05:56 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1424,6 +1424,7 @@ void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
 
 void Server::run()
 {
+    is_server_running = true;
     int client_fd;
     char buf[513];
     memset(buf, 0, 513);

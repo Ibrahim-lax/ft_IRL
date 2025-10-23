@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/22 18:31:24 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/23 12:45:29 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,8 +35,6 @@ void clean_server()
     }
     for (size_t i = 0; i < Server::poll_fds.size(); i++)
     {
-        if (i == 0)
-            continue;
         close(Server::poll_fds[i].fd);
     }
     Server::channels.clear();
