@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 12:39:30 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 15:34:09 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,10 +29,9 @@
 #define COMMA 44
 #define MAX_CHANNELS 10
 
-
 class Client;
 class Channel;
-
+void    show_address();
 class Server
 {
     private:
@@ -56,6 +55,13 @@ class Server
         
         void execute(Client *client, std::string &message, int i, int *fd_bot);
         std::string  handlebotCommand(std::string &cmd);
+        static void    clean_server();
+
+
+
+
+        static std::vector<Channel*> address_allocated_channels;
+        static std::vector<Client*> address_allocated_clients;
 };
 
 bool    password_check(Client *client, std::vector<std::string> array_params, std::string password);

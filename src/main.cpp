@@ -6,12 +6,11 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 12:45:29 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 15:12:26 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
-
 
 bool isnum(std::string str)
 {
@@ -23,33 +22,50 @@ bool isnum(std::string str)
     return true;
 }
 
-void clean_server()
+void Server::clean_server()
 {
-    for (size_t i = 0; i < Server::channels.size(); i++)
+    for (size_t i = 0; i < channels.size(); i++)
     {
-        delete Server::channels[i];
+        std::cout << "Deleting channel: " << channels[i]->name << std::endl;
+        std::cout << "address: " << channels[i] << std::endl;
+        
+        Server::address_allocated_channels.erase(
+            std::remove(Server::address_allocated_channels.begin(),
+                        Server::address_allocated_channels.end(),
+                        channels[i]),
+            Server::address_allocated_channels.end());
+        delete channels[i];
     }
-    for (size_t i = 0; i < Server::array_clients.size(); i++)
+    for (size_t i = 0; i < array_clients.size(); i++)
     {
-        delete Server::array_clients[i];
+        std::cout << "Deleting client: " << array_clients[i]->nickname << std::endl;
+        std::cout << "address: " << array_clients[i] << std::endl;
+        Server::address_allocated_clients.erase(
+            std::remove(Server::address_allocated_clients.begin(),
+                        Server::address_allocated_clients.end(),
+                        array_clients[i]),
+            Server::address_allocated_clients.end());
+        delete array_clients[i];
     }
-    for (size_t i = 0; i < Server::poll_fds.size(); i++)
+    for (size_t i = 0; i < poll_fds.size(); i++)
     {
-        close(Server::poll_fds[i].fd);
+        if (poll_fds[i].fd != -1)
+            close(poll_fds[i].fd);
     }
-    Server::channels.clear();
-    Server::array_clients.clear();
-    Server::poll_fds.clear();
+    channels.clear();
+    array_clients.clear();
+    poll_fds.clear();
 }
-
 
 void handler(int signum)
 {
     (void)signum;
     if (Server::is_server_running)
-        clean_server();
-    exit(0);
+        Server::clean_server();
+    show_address();
+    std::exit(1);
 }
+
 int main(int ac, char *av[])
 {
     signal(SIGPIPE, SIG_IGN);

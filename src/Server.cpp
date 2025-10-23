@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 13:05:56 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 15:29:28 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,9 @@
 std::vector<Channel*> Server::channels;
 std::vector<Client*> Server::array_clients;
 std::vector<struct pollfd> Server::poll_fds;
+std::vector<Channel*> Server::address_allocated_channels;
+std::vector<Client*> Server::address_allocated_clients;
 bool Server::is_server_running = false;
-
 
 Server::Server(std::string port, std::string passw)
 {
@@ -327,6 +328,7 @@ void    join_channel(Client *client, std::string &channel_name, std::string &key
     if (exist_channel(channel_name, client, key))
         return ;
     Channel *channel = new Channel();
+    Server::address_allocated_channels.push_back(channel);
     channel->name = channel_name;
     channel->operators.push_back(client->socket_fd);
     client->channelsjoined.push_back(channel);
@@ -572,6 +574,11 @@ void    kicking(Client *client, int i, int j, std::string &reason)
                         Server::channels.end(),
                         to_delete),
             Server::channels.end());
+        Server::address_allocated_channels.erase(
+            std::remove(Server::address_allocated_channels.begin(),
+                        Server::address_allocated_channels.end(),
+                        to_delete),
+            Server::address_allocated_channels.end());
         delete to_delete;
     }
     else if (Server::channels[i]->isOperator(kicked_client->socket_fd))
@@ -1341,7 +1348,11 @@ void    remove_channel(Channel *channel)
                 std::remove(Server::channels.begin(), Server::channels.end(), Server::channels[i]),
                 Server::channels.end());
             remove_invited(channel);
-            channel->clients.clear();
+            Server::address_allocated_channels.erase(
+                std::remove(Server::address_allocated_channels.begin(),
+                            Server::address_allocated_channels.end(),
+                            channel),
+                Server::address_allocated_channels.end());
             delete channel;
             return ;
         }
@@ -1365,9 +1376,7 @@ void    handle_channels(int i)
         if (channel_has_one_user(channel))
         {
             remove_channel(channel);
-            Server::array_clients[i - 1]->channelsjoined.clear();
-            Server::array_clients[i - 1]->invited_channels.clear();
-            return ;
+            continue;
         }
         for (size_t k = 0; k < channel->clients.size(); k++)
             std::cout << "\t Remaining client in channel: " << channel->clients[k]->nickname << std::endl;
@@ -1391,8 +1400,6 @@ void    handle_channels(int i)
             }
         }
     }
-    // Server::array_clients[i - 1]->channelsjoined.clear();
-    // Server::array_clients[i - 1]->invited_channels.clear();
 }
 
 void    delete_client(int i)
@@ -1404,6 +1411,11 @@ void    delete_client(int i)
     Server::array_clients.erase(
         std::remove(Server::array_clients.begin(), Server::array_clients.end(), Server::array_clients[i - 1]),
         Server::array_clients.end());
+    Server::address_allocated_clients.erase(
+        std::remove(Server::address_allocated_clients.begin(),
+                    Server::address_allocated_clients.end(),
+                    delet_client),
+        Server::address_allocated_clients.end());
     delete delet_client;
     std::cout << "\e[1;34m*****************************************************\e[0m" << std::endl;
 }
@@ -1420,6 +1432,18 @@ void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
         unregister_cmnd(client, cmd, message, this->pw, fd_bot, array_params);//done
     else
         register_cmd(client, cmd, message, this, i, fd_bot, array_params);
+}
+
+void    show_address()
+{
+    for (size_t i = 0; i < Server::address_allocated_channels.size(); i++)
+    {
+        std::cout << "Channel " << i + 1 << " address: " << Server::address_allocated_channels[i] << std::endl;
+    }
+    for (size_t i = 0; i < Server::address_allocated_clients.size(); i++)
+    {
+        std::cout << "Client " << i + 1 << " address: " << Server::address_allocated_clients[i] << std::endl;
+    }
 }
 
 void Server::run()
@@ -1460,6 +1484,7 @@ void Server::run()
             std::cout << "client of socket <" << client_fd << "> CONNECTED" << std::endl;
             register_cl(&this->poll_fds, client_fd);
             array_clients.push_back(new Client(client_fd));
+            Server::address_allocated_clients.push_back(array_clients.back());
             std::string buf_client = "";
             buffs.push_back(buf_client);
         }
@@ -1502,6 +1527,7 @@ void Server::run()
                             buffs[i-1] = buffs[i-1].substr(pos + 1);
                         }
                         // show_clients();
+                        show_address();
                     }
                 }
                 else if (bytes_readen == 0)
