@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 16:13:24 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 15:45:44 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 16:42:48 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,14 +14,14 @@
 #define SERVER_HPP
 #include <iostream>
 #include <cstring>
-#include <cstdlib>       // For exit()
-#include <unistd.h>      // For close()
-#include <netdb.h>       // For getaddrinfo(), addrinfo
+#include <cstdlib>     
+#include <unistd.h>     
+#include <netdb.h>     
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <fcntl.h>       // For fcntl()
-#include <poll.h>        // For poll()
+#include <fcntl.h>     
+#include <poll.h>      
 #include <vector>
 #include "Client.hpp"
 #include "Channel.hpp"

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 16:18:28 by librahim         ###   ########.fr       */
+/*   Updated: 2025/10/23 16:56:31 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -679,33 +679,6 @@ bool    already_invited(Channel *channel, Client *client)
     return false;
 }
 
-void    show_array_clients()
-{
-    for (unsigned long i = 0; i < Server::array_clients.size(); i++)
-    {
-        std::cout << "Client " << i + 1 << ": " << Server::array_clients[i]->nickname << std::endl;
-        for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
-        {
-            std::cout << "\t" << "Invited to channel: " << Server::array_clients[i]->invited_channels[j]->name << std::endl;
-        }
-    }
-}
-
-void    show_array_channels()
-{
-    for (unsigned long i = 0; i < Server::channels.size(); i++)
-    {
-        std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
-        for (unsigned long j = 0; j < Server::channels[i]->clients.size(); j++)
-        {
-            std::cout << "\t" << "Client: " << Server::channels[i]->clients[j]->nickname << std::endl;
-            for (size_t k = 0; k < Server::channels[i]->clients[j]->invited_channels.size(); k++)
-            {
-                std::cout << "\t\t" << "Invited to channel: " << Server::channels[i]->clients[j]->invited_channels[k]->name << std::endl;
-            }
-        }
-    }
-}
 
 bool    is_inviter_joined(Channel *channel, Client *client)
 {
@@ -887,7 +860,6 @@ void    quit(Client *client, std::string message, Server *server, int i)
     inform_quit(client, text);
     close(server->poll_fds[i].fd);
     server->poll_fds.erase(server->poll_fds.begin() + i);
-    std::cout << "\e[1;32m FROM QUIT: \e[0m";
     delete_client(i);
     server->size_cl--;
 }
@@ -900,9 +872,8 @@ void    unknown_cmd(Client *client, std::string cmd)
 }
 
 
-void    bot_cmd(Client *client, std::string &cmd, Server *server, int *fd_bot)
+void    bot_cmd(Client *client, std::string &cmd, int *fd_bot)
 {
-    (void)server;
     std::string bot_request = client->nickname + "::" + cmd;
     int bot_fd = *fd_bot;
     if (bot_fd < 0)
@@ -937,7 +908,7 @@ void    register_cmd(Client *client, std::string cmd, std::string message, Serve
     else if(cmd == "MODE")
         mode(client, message, server);
     else if (cmd[0] == '!')
-        bot_cmd(client, cmd, server, fd_bot);
+        bot_cmd(client, cmd, fd_bot);
     else if (cmd == "PONG")
         return ;
     else
@@ -1000,10 +971,6 @@ std::vector<std::string> ft_split(std::string &parameters)
     }
     if (result.size() == 0)
         result.push_back("");
-    for (size_t j = 0; j < result.size(); j++)
-    {
-        std::cout << "Param " << j + 1 << ": [" << result[j] << "]" << std::endl;
-    }
     return result;
 }
 
@@ -1042,7 +1009,6 @@ void    unregister_cmnd(Client *client,std::string &cmd, std::string message, st
     {
         if (!client->is_auth)
             return ;
-        std::cout << "{{{{{{{{{{{{{{{{{"<< message << "}}}}}}}}}}}}}}}}}" << std::endl;
         nickname(client, message, fd_bot);
     }
     else if (cmd == "USER")
@@ -1127,7 +1093,7 @@ void    nickname(Client *client, std::string message, int *fd_bot)
     std::string NICK = (client->is_nickname) ? client->nickname : "*";
     std::string nick = message;
 
-    if (client->is_bot == false && nick == "[BOT]")//77
+    if (client->is_bot == false && nick == "[BOT]")
     {
         text = ":localhost 432 " + NICK + " " + nick + " :Erroneous nickname (this nickname belongs only to bots)\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
@@ -1153,95 +1119,13 @@ void    nickname(Client *client, std::string message, int *fd_bot)
         client->nickname = nick;
         client->is_nickname = true;
     }
-    if (client->is_bot)//77
+    if (client->is_bot)
     {
         text = ":localhost 001  nickname is good\r\n";
         send(client->socket_fd, text.c_str(), text.length(), 0);
         
         *fd_bot = client->socket_fd;
     }
-}
-
-
-void    show_channels()
-{
-    for (unsigned long i = 0; i < Server::channels.size(); i++)
-    {
-        std::cout << "Channel " << i + 1 << ": " << Server::channels[i]->name << std::endl;
-        show_operators(Server::channels[i]);
-        std::cout << "\t" << "Clients in Channel: ";
-        if (Server::channels[i]->clients.empty())
-            std::cout << "None" << std::endl;
-        else
-        {
-            for (size_t j = 0; j < Server::channels[i]->clients.size(); j++)
-            {
-                std::cout << Server::channels[i]->clients[j]->nickname << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << "-----------------------------" << std::endl;
-    }
-}
-
-void show_clients()
-{
-    for (int i = 0; i < (int)Server::array_clients.size(); i++)
-    {
-        std::cout << "Client " << i + 1 << ": " << std::endl;
-        std::cout << "address: " << Server::array_clients[i] << std::endl;
-        std::cout << "Socket FD: " << Server::array_clients[i]->socket_fd << std::endl;
-        std::cout << "\tNickname: [" << Server::array_clients[i]->nickname << "]" << std::endl;
-        std::cout << "\tUsername: [" << Server::array_clients[i]->username << "]" << std::endl;
-        std::cout << "\tReal Name: [" << Server::array_clients[i]->real_name << "]" << std::endl;
-        std::cout << "\tIs Authenticated: " << (Server::array_clients[i]->is_auth ? "Yes" : "No") << std::endl;
-        std::cout << "\tIs Nickname Set: " << (Server::array_clients[i]->is_nickname ? "Yes" : "No") << std::endl;
-        std::cout << "\tIs Username Set: " << (Server::array_clients[i]->is_username ? "Yes" : "No") << std::endl;
-        std::cout << "\tIs Registered: " << (Server::array_clients[i]->is_registered ? "Yes" : "No") << std::endl;
-        std::cout << "\tIs BOT: " << (Server::array_clients[i]->is_bot ? "Yes" : "No") << std::endl;
-
-        std::cout << "----------------------------" << std::endl;
-        std::cout << "\tChannels Joined: ";
-        if (Server::array_clients[i]->channelsjoined.empty())
-        {
-            std::cout << "None" << std::endl;
-        }
-        else
-        {
-            std::cout << std::endl;
-            for (size_t j = 0; j < Server::array_clients[i]->channelsjoined.size(); j++)
-            {
-                std::cout << "\t  - [" << Server::array_clients[i]->channelsjoined[j]->name << "]";
-                std::cout <<  "\t added at address: " << Server::array_clients[i]->channelsjoined[j] << std::endl;
-                // Channel* ch = Server::array_clients[i]->channelsjoined[j];
-                // std::cout << "\t  - " << ch->name;
-                // if (!ch->topic.empty())
-                //     std::cout << " (Topic: " << ch->topic << ")";
-                // else
-                //     std::cout << " (No topic set)";
-                // std::cout << std::endl;
-            }
-        }
-
-        std::cout << "-----------------------------" << std::endl;
-        std::cout << "\tInvited Channels: ";
-        if (Server::array_clients[i]->invited_channels.empty())
-            std::cout << "None" << std::endl;
-        else
-        {
-            for (size_t j = 0; j < Server::array_clients[i]->invited_channels.size(); j++)
-            {
-                std::cout << Server::array_clients[i]->invited_channels[j]->name << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << "-----------------------------" << std::endl;
-    }
-
-    show_channels();
-    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
-    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
-    std::cout << "\e[1;31m*****************************************************\e[0m" << std::endl;
 }
 
 size_t skip_spaces(std::string message, size_t i)
@@ -1358,20 +1242,15 @@ void    handle_channels(int i)
 {
     for (unsigned long j = 0; j < Server::array_clients[i - 1]->channelsjoined.size(); j++)
     {
-        std::cout << "Handling channel: " << Server::array_clients[i - 1]->channelsjoined[j]->name << std::endl;
         Channel *channel = Server::array_clients[i - 1]->channelsjoined[j];
         if (channel_has_one_user(channel))
         {
             remove_channel(channel);
             continue;
         }
-        for (size_t k = 0; k < channel->clients.size(); k++)
-            std::cout << "\t Remaining client in channel: " << channel->clients[k]->nickname << std::endl;
         channel->clients.erase(
             std::remove(channel->clients.begin(), channel->clients.end(), Server::array_clients[i - 1]),
             channel->clients.end());
-        for (size_t k = 0; k < channel->clients.size(); k++)
-            std::cout << "\t Remaining client in channel: " << channel->clients[k]->nickname << std::endl;
         if (channel->isOperator(Server::array_clients[i - 1]->socket_fd))
         {
             if (channel->operators.size() > 1)
@@ -1379,8 +1258,6 @@ void    handle_channels(int i)
             else if (channel->operators.size() == 1)
             {
                 channel->removeOperator(Server::array_clients[i - 1]->socket_fd);
-                for (size_t k = 0; k < channel->clients.size(); k++)
-                    std::cout << "\t Remaining client in channel: " << channel->clients[k]->nickname << std::endl;
                 std::string text = ":localhost MODE #" + channel->name + " +o " + channel->clients[0]->nickname + "\r\n";
                 informe_quit(channel, text);
                 channel->addOperator(channel->clients[0]->socket_fd);
@@ -1391,27 +1268,23 @@ void    handle_channels(int i)
 
 void    delete_client(int i)
 {
-    std::cout << "\e[1;33m YO I AM INSIDE DELETE CLIENT FUNCTION\e[0m" << std::endl;
     Client *delet_client = Server::array_clients[i - 1];
     handle_channels(i);
-    std::cout << "\e[1;34m*****************************************************\e[0m" << std::endl;
     Server::array_clients.erase(
         std::remove(Server::array_clients.begin(), Server::array_clients.end(), Server::array_clients[i - 1]),
         Server::array_clients.end());
     delete delet_client;
-    std::cout << "\e[1;34m*****************************************************\e[0m" << std::endl;
 }
 
 void    Server::execute(Client *client, std::string &message, int i,int *fd_bot)
 {
-    (void)i;
     size_t  index = 0;
     std::string cmd = command(message, &index);
     std::vector<std::string> array_params = ft_split(message);
     if (cmd == "" && index == 0)
         return ;
     if (!client->is_registered)
-        unregister_cmnd(client, cmd, message, this->pw, fd_bot, array_params);//done
+        unregister_cmnd(client, cmd, message, this->pw, fd_bot, array_params);
     else
         register_cmd(client, cmd, message, this, i, fd_bot, array_params);
 }
@@ -1433,7 +1306,8 @@ void Server::run()
         int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 1);
         if (ready < 0)
         {
-            std::cerr << "problem with poll"<<std::endl;
+            if (Server::is_server_running == true)
+                std::cerr << "problem with poll"<<std::endl;
             continue;
         }
         if (this->poll_fds.at(0).revents & POLLIN)
@@ -1473,9 +1347,6 @@ void Server::run()
                 {
                     std::string str(buf);
                     buffs.at(i - 1) += str;
-                    
-                    std::cout << "Message from client " << i << ": " << buffs.at(i - 1) << std::endl;
-                    
                     std::string cur;
                     unsigned long pos = 0;
                     while ((pos = buffs.at(i - 1).find_first_of("\n")) != (unsigned long) std::string::npos)
@@ -1495,14 +1366,12 @@ void Server::run()
                             cur = buffs[i-1].substr(0, pos);
                             buffs[i-1] = buffs[i-1].substr(pos + 1);
                         }
-                        // show_clients();
                     }
                 }
                 else if (bytes_readen == 0)
                 {
                     close(this->poll_fds.at(i).fd);
                     this->poll_fds.erase(this->poll_fds.begin() + i);
-                    std::cout << "\e[1;34m FROM SERVER: \e[0m";
                     delete_client(i);
                     size_cl--;
                     std::cout << "User " << i << " has left the chat" << std::endl;

@@ -3,7 +3,7 @@ NAME	=	Irc_server
 NAME_BONUS = Bot
 
 CMD		=	c++
-FLAGS	=	-Wall -Werror -Wextra -std=c++98 -g -fsanitize=address
+FLAGS	=	-Wall -Werror -Wextra -std=c++98
 
 SRCS	=	src/Channel.cpp \
 			src/Server.cpp \
@@ -32,13 +32,13 @@ all : $(NAME)
 
 
 $(NAME): $(OFILES) 
-	$(CMD) -g -fsanitize=address $(OFILES) -o $(NAME)
+	$(CMD) $(OFILES) -o $(NAME)
 
 
 bonus : $(NAME_BONUS)
 
 $(NAME_BONUS): $(OFILES_B) 
-	$(CMD) -g -fsanitize=address $(OFILES_B) -o $(NAME_BONUS)
+	$(CMD) $(OFILES_B) -o $(NAME_BONUS)
 
 %.o : %.cpp $(H)
 	$(CMD) $(FLAGS) -c $< -o $@

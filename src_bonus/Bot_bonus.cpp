@@ -130,7 +130,6 @@ std::string handlebotCommand(std::string &cmd, long t, int fd, std::string nickn
     else if (!cmd.find("!HELP") || !cmd.find("!help"))
     {
         std::string snd_res;
-        //"Bot: Available commands:\n     !uptime - shows server uptime in seconds\n     !joke - tells a random joke\n"
         snd_res = "PRIVMSG " + nickname + " Available commands :\r\n";
         send(fd, snd_res.c_str(), snd_res.size(), 0);
         snd_res = "PRIVMSG " + nickname + "     !uptime - shows server uptime in seconds\r\n";
