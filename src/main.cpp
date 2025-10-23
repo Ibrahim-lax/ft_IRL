@@ -6,7 +6,7 @@
 /*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 15:12:26 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 15:45:38 by mjuicha          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,25 +26,10 @@ void Server::clean_server()
 {
     for (size_t i = 0; i < channels.size(); i++)
     {
-        std::cout << "Deleting channel: " << channels[i]->name << std::endl;
-        std::cout << "address: " << channels[i] << std::endl;
-        
-        Server::address_allocated_channels.erase(
-            std::remove(Server::address_allocated_channels.begin(),
-                        Server::address_allocated_channels.end(),
-                        channels[i]),
-            Server::address_allocated_channels.end());
         delete channels[i];
     }
     for (size_t i = 0; i < array_clients.size(); i++)
     {
-        std::cout << "Deleting client: " << array_clients[i]->nickname << std::endl;
-        std::cout << "address: " << array_clients[i] << std::endl;
-        Server::address_allocated_clients.erase(
-            std::remove(Server::address_allocated_clients.begin(),
-                        Server::address_allocated_clients.end(),
-                        array_clients[i]),
-            Server::address_allocated_clients.end());
         delete array_clients[i];
     }
     for (size_t i = 0; i < poll_fds.size(); i++)
@@ -62,7 +47,6 @@ void handler(int signum)
     (void)signum;
     if (Server::is_server_running)
         Server::clean_server();
-    show_address();
     std::exit(1);
 }
 
