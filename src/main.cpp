@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/16 17:12:48 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 15:45:38 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 16:22:13 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,18 +42,21 @@ void Server::clean_server()
     poll_fds.clear();
 }
 
-void handler(int signum)
+void sig_handl(int signum)
 {
-    (void)signum;
-    if (Server::is_server_running)
-        Server::clean_server();
-    std::exit(1);
+    if (signum == SIGINT || signum == SIGTERM)
+    {
+        std::cout << "\n[Server] Shutting down..." << std::endl;
+        Server::is_server_running = false;
+    }
 }
 
 int main(int ac, char *av[])
 {
+    signal(SIGINT, sig_handl);
+    signal(SIGTERM, sig_handl);
     signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, handler);
+    
     if (ac < 3) {
         std::cerr << "Usage: " << av[0] << " <port> <password>\n";
         return 1;
@@ -75,7 +78,6 @@ int main(int ac, char *av[])
         std::cerr << "error : <port> is out of range" << std::endl;
         return 1;
     }
-
     std::string pw = av[2];
     if (pw.size() == 0)
     {
@@ -84,6 +86,9 @@ int main(int ac, char *av[])
     }
     Server s(av[1], av[2]);
     s.setup();
+    Server::is_server_running = true;
     s.run();
+    s.clean_server();
+    close(s.get_serv_fd());
     return 0;
 }

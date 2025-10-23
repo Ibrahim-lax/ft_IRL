@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mjuicha <mjuicha@student.42.fr>            +#+  +:+       +#+        */
+/*   By: librahim <librahim@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/11 20:48:30 by librahim          #+#    #+#             */
-/*   Updated: 2025/10/23 15:45:33 by mjuicha          ###   ########.fr       */
+/*   Updated: 2025/10/23 16:18:28 by librahim         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1428,7 +1428,7 @@ void Server::run()
     socklen_t cl_len = sizeof(cl_adr);
     int i;
     int socket_bot = -1;
-    while (true)
+    while (Server::is_server_running)
     {
         int ready = poll(this->poll_fds.data(), this->poll_fds.size(), 1);
         if (ready < 0)
